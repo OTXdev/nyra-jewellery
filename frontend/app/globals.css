@@ -1,0 +1,129 @@
+@import 'tailwindcss';
+@import 'tw-animate-css';
+@import 'shadcn/tailwind.css';
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+  --color-wine: var(--wine);
+  --color-wine-foreground: var(--wine-foreground);
+  --color-gold: var(--gold);
+  --color-ivory: var(--ivory);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+
+  --font-sans: var(--font-poppins), ui-sans-serif, system-ui, sans-serif;
+  --font-serif: var(--font-playfair), ui-serif, Georgia, serif;
+
+  --radius-sm: calc(var(--radius) * 0.6);
+  --radius-md: calc(var(--radius) * 0.8);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) * 1.4);
+  --radius-2xl: calc(var(--radius) * 1.8);
+  --radius-3xl: calc(var(--radius) * 2.4);
+}
+
+:root {
+  color-scheme: light;
+  --radius: 0.9rem;
+
+  /* Powder pink primary background */
+  --background: oklch(0.955 0.018 12);
+  /* Deep emerald green */
+  --foreground: oklch(0.34 0.075 165);
+
+  --card: oklch(0.985 0.008 60);
+  --card-foreground: oklch(0.34 0.075 165);
+
+  --popover: oklch(0.99 0.006 60);
+  --popover-foreground: oklch(0.34 0.075 165);
+
+  /* Emerald green buttons */
+  --primary: oklch(0.38 0.082 164);
+  --primary-foreground: oklch(0.97 0.012 90);
+
+  /* Warm beige */
+  --secondary: oklch(0.9 0.024 70);
+  --secondary-foreground: oklch(0.34 0.075 165);
+
+  --muted: oklch(0.93 0.018 40);
+  --muted-foreground: oklch(0.52 0.03 160);
+
+  /* Champagne gold accent */
+  --accent: oklch(0.83 0.075 82);
+  --accent-foreground: oklch(0.34 0.075 165);
+
+  /* Burgundy / wine for promotions */
+  --wine: oklch(0.42 0.13 15);
+  --wine-foreground: oklch(0.97 0.012 90);
+
+  --gold: oklch(0.78 0.09 82);
+  --ivory: oklch(0.97 0.012 90);
+
+  --destructive: oklch(0.55 0.2 25);
+  --destructive-foreground: oklch(0.97 0.012 90);
+
+  --border: oklch(0.86 0.04 78);
+  --input: oklch(0.88 0.03 70);
+  --ring: oklch(0.78 0.09 82);
+}
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+  body {
+    @apply bg-background text-foreground;
+  }
+  h1,
+  h2,
+  h3,
+  h4 {
+    @apply font-serif;
+  }
+}
+
+@layer utilities {
+  .text-balance {
+    text-wrap: balance;
+  }
+  .input {
+    @apply w-full rounded-xl border border-border bg-background px-4 py-2.5 text-sm outline-none transition-colors focus:border-primary;
+  }
+  @keyframes fade-up {
+    from {
+      opacity: 0;
+      transform: translateY(16px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+  .animate-fade-up {
+    animation: fade-up 0.7s ease both;
+  }
+  @keyframes shimmer {
+    0% {
+      background-position: -200% 0;
+    }
+    100% {
+      background-position: 200% 0;
+    }
+  }
+}
