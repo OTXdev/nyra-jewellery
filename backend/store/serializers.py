@@ -352,8 +352,8 @@ class ContactMessageSerializer(serializers.ModelSerializer):
 # ---------------------------------------------------------------------------
 
 class SiteSettingsSerializer(serializers.ModelSerializer):
-    hero_image = serializers.SerializerMethodField()
-    about_image = serializers.SerializerMethodField()
+    hero_image = serializers.ImageField(required=False, allow_null=True)
+    about_image = serializers.ImageField(required=False, allow_null=True)
 
     class Meta:
         model = SiteSettings
@@ -369,20 +369,6 @@ class SiteSettingsSerializer(serializers.ModelSerializer):
             "updated_at",
         ]
         read_only_fields = ["updated_at"]
-
-    def get_hero_image(self, obj):
-        if not obj.hero_image:
-            return None
-        request = self.context.get("request")
-        url = obj.hero_image.url
-        return request.build_absolute_uri(url) if request else url
-
-    def get_about_image(self, obj):
-        if not obj.about_image:
-            return None
-        request = self.context.get("request")
-        url = obj.about_image.url
-        return request.build_absolute_uri(url) if request else url
 
 
 # ---------------------------------------------------------------------------
