@@ -193,16 +193,17 @@ class OrderSerializer(serializers.ModelSerializer):
             "wilaya",
             "commune",
             "address",
-            "notes",
-            "status",
-            "subtotal",
-            "delivery_fee",
-            "total",
-            "payment_method",
-            "items",
-            "created_at",
-            "updated_at",
-        ]
+                "delivery_method",
+                "notes",
+                "status",
+"subtotal",
+                "delivery_fee",
+"total",
+                "payment_method",
+                "items",
+                "created_at",
+                "updated_at",
+            ]
         read_only_fields = [f for f in fields if f != "status"]
 
 
@@ -229,7 +230,9 @@ class OrderCreateSerializer(serializers.Serializer):
     phone = serializers.CharField(max_length=30)
     wilaya_id = serializers.IntegerField()
     commune = serializers.CharField(max_length=150)
-    address = serializers.CharField()
+    # Address is required for home delivery but optional for stopdesk pickup.
+    address = serializers.CharField(required=False, allow_blank=True, default="")
+    delivery_method = serializers.ChoiceField(choices=[("home","À domicile"),("stopdesk","Au bureau")], default="home", required=False)
     notes = serializers.CharField(required=False, allow_blank=True, default="")
     items = OrderItemInputSerializer(many=True)
 
@@ -264,7 +267,13 @@ class OrderCreateSerializer(serializers.Serializer):
                 {"items": f"Out of stock: {', '.join(out_of_stock)}"}
             )
 
+        # Ensure wilaya exists (validate_wilaya_id already checks id existence)
         attrs["_products_by_id"] = products_by_id
+        # Validate address presence when delivery_method is home
+        delivery_method = attrs.get("delivery_method", "home")
+        addr = attrs.get("address", "") or ""
+        if delivery_method == "home" and not addr.strip():
+            raise serializers.ValidationError({"address": "Address is required for home delivery."})
         return attrs
 
     @transaction.atomic
@@ -291,8 +300,17 @@ class OrderCreateSerializer(serializers.Serializer):
                 }
             )
 
-        # Apply free-delivery rule: orders at or above the threshold get free delivery.
-        delivery_fee = 0 if subtotal >= FREE_DELIVERY_THRESHOLD else wilaya.delivery_fee
+        # Determine which fee to use depending on delivery method.
+        delivery_method = validated_data.get("delivery_method", "home")
+        # Apply free-delivery rule: if subtotal >= threshold, fee becomes 0 for both methods.
+        if subtotal >= FREE_DELIVERY_THRESHOLD:
+            delivery_fee = 0
+        else:
+            if delivery_method == "home":
+                delivery_fee = wilaya.delivery_fee
+            else:
+                # Use stopdesk_fee when available, otherwise fall back to delivery_fee.
+                delivery_fee = wilaya.stopdesk_fee if (wilaya.stopdesk_fee is not None) else wilaya.delivery_fee
         total = subtotal + delivery_fee
 
         order = Order.objects.create(
@@ -300,7 +318,8 @@ class OrderCreateSerializer(serializers.Serializer):
             phone=validated_data["phone"],
             wilaya=wilaya.name,
             commune=validated_data["commune"],
-            address=validated_data["address"],
+            address=validated_data.get("address", ""),
+            delivery_method=delivery_method,
             notes=validated_data.get("notes", ""),
             subtotal=subtotal,
             delivery_fee=delivery_fee,
@@ -333,10 +352,37 @@ class ContactMessageSerializer(serializers.ModelSerializer):
 # ---------------------------------------------------------------------------
 
 class SiteSettingsSerializer(serializers.ModelSerializer):
+    hero_image = serializers.SerializerMethodField()
+    about_image = serializers.SerializerMethodField()
+
     class Meta:
         model = SiteSettings
-        fields = ["phone", "phone_display", "email", "address", "instagram", "tiktok", "updated_at"]
+        fields = [
+            "phone",
+            "phone_display",
+            "email",
+            "address",
+            "instagram",
+            "tiktok",
+            "hero_image",
+            "about_image",
+            "updated_at",
+        ]
         read_only_fields = ["updated_at"]
+
+    def get_hero_image(self, obj):
+        if not obj.hero_image:
+            return None
+        request = self.context.get("request")
+        url = obj.hero_image.url
+        return request.build_absolute_uri(url) if request else url
+
+    def get_about_image(self, obj):
+        if not obj.about_image:
+            return None
+        request = self.context.get("request")
+        url = obj.about_image.url
+        return request.build_absolute_uri(url) if request else url
 
 
 # ---------------------------------------------------------------------------

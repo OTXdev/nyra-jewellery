@@ -34,7 +34,7 @@ export default async function CollectionsPage() {
       <PageHeader
         eyebrow="Curated Edits"
         title="Our Collections"
-        description="Each collection tells its own story — thoughtfully designed to accompany life's most precious moments."
+        description="Each collection tells its own story — thoughtfully assembled to accompany your style."
       />
       <section className="mx-auto max-w-6xl px-4 pb-20 md:px-6">
         {collections.length === 0 ? (

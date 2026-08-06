@@ -18,13 +18,13 @@ const poppins = Poppins({
 })
 
 export const metadata: Metadata = {
-  title: 'Nyra Jewellery — Luxury Handcrafted Jewelry',
+  title: 'Nyra Jewellery — Modern Stainless Steel Jewelry',
   description:
-    'Discover Nyra Jewellery: elegant rings, necklaces, bracelets and jewelry sets. Browse the collection, request your order, and let us handle the rest.',
+    'Discover Nyra Jewellery: elegant rings, necklaces, bracelets and jewelry sets in modern stainless steel. Browse the collection, request your order, and let us handle the rest.',
   generator: 'v0.app',
   keywords: [
     'Nyra Jewellery',
-    'luxury jewelry',
+    'stainless steel jewelry',
     'rings',
     'necklaces',
     'bracelets',
@@ -32,9 +32,9 @@ export const metadata: Metadata = {
     'Algeria jewelry',
   ],
   openGraph: {
-    title: 'Nyra Jewellery — Luxury Handcrafted Jewelry',
+    title: 'Nyra Jewellery — Modern Stainless Steel Jewelry',
     description:
-      'Elegant rings, necklaces, bracelets and jewelry sets. Browse and request your order.',
+      'Elegant rings, necklaces, bracelets and jewelry sets in modern stainless steel. Browse and request your order.',
     type: 'website',
   },
 }

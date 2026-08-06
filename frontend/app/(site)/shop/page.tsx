@@ -6,7 +6,7 @@ import { ShopBrowser } from "@/components/shop/shop-browser"
 export const metadata: Metadata = {
   title: "Shop All Jewellery",
   description:
-    "Browse the full Nyra Jewellery collection of rings, necklaces, bracelets and sets. Filter by category, price and material.",
+    "Browse the full Nyra Jewellery collection of rings, necklaces, bracelets and sets in modern stainless steel. Filter by category, price and material.",
 }
 
 export default function ShopPage() {
@@ -15,7 +15,7 @@ export default function ShopPage() {
       <PageHeader
         eyebrow="The Collection"
         title="Shop All Jewellery"
-        description="Discover handcrafted pieces made to be treasured. Filter by category, material and price to find your perfect adornment."
+        description="Discover our curated selection of modern stainless steel jewelry. Filter by category, material and price to find your perfect piece."
       />
       <Suspense fallback={null}>
         <ShopBrowser />

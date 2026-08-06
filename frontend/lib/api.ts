@@ -133,6 +133,7 @@ function mapApiOrder(o: any): Order {
     wilaya: o.wilaya,
     commune: o.commune,
     address: o.address,
+    deliveryMethod: o.delivery_method || undefined,
     notes: o.notes || undefined,
     items: (o.items || []).map(
       (it: any): OrderLine => ({
@@ -217,7 +218,8 @@ export interface CreateOrderPayload {
   phone: string
   wilaya_id: number
   commune: string
-  address: string
+  address?: string
+  delivery_method?: "home" | "stopdesk"
   notes?: string
   items: { product_id: number; quantity: number; size?: string }[]
 }
@@ -253,6 +255,8 @@ export interface SiteSettings {
   address: string
   instagram: string
   tiktok: string
+  hero_image: string | null
+  about_image: string | null
 }
 
 export async function fetchSiteSettings(): Promise<SiteSettings> {
@@ -265,6 +269,33 @@ export async function updateSiteSettings(token: string, payload: Partial<SiteSet
     token,
     body: JSON.stringify(payload),
   })
+}
+
+/** Upload or replace the homepage hero / about image. */
+export async function updateSiteImage(
+  token: string,
+  field: "hero_image" | "about_image",
+  file: File,
+): Promise<SiteSettings> {
+  const form = new FormData()
+  form.append(field, file)
+  return apiFetch("/site-settings/", {
+    method: "PATCH",
+    token,
+    body: form,
+  })
+}
+
+/** Reset the admin revenue figure (marks all non-''new'' orders as excluded). */
+export async function resetAdminRevenue(token: string): Promise<AdminStats> {
+  const data = await apiFetch("/admin/stats/", { method: "POST", token })
+  return {
+    totalRevenue: data.total_revenue,
+    totalOrders: data.total_orders,
+    ordersByStatus: data.orders_by_status,
+    totalProducts: data.total_products,
+    unreadMessages: data.unread_messages,
+  }
 }
 
 // ---------------------------------------------------------------------------
@@ -361,6 +392,15 @@ export async function updateOrderStatus(token: string, id: number, status: Order
     body: JSON.stringify({ status }),
   })
   return mapApiOrder(data)
+}
+
+/** Bulk-delete orders by id. Expects {"ids": number[]}. */
+export async function deleteOrders(token: string, ids: number[]) {
+  return apiFetch("/admin/orders/bulk-delete/", {
+    method: "POST",
+    token,
+    body: JSON.stringify({ ids }),
+  })
 }
 
 // ---------------------------------------------------------------------------

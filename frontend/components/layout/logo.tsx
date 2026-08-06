@@ -22,7 +22,7 @@ export function Logo({
       </span>
       {showTagline ? (
         <span className="mt-1 text-xs italic text-muted-foreground">
-          Handcrafted elegance
+          Modern elegance
         </span>
       ) : null}
     </Link>

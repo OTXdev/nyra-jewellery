@@ -1,22 +1,46 @@
+"use client"
+
 import Image from 'next/image'
 import Link from 'next/link'
+import { useEffect } from 'react'
 import { ArrowRight, Sparkles } from 'lucide-react'
+import { fetchSiteSettings } from '@/lib/api'
+import { setSiteImages, useSiteImages } from '@/lib/site-images'
 
 export function Hero() {
+  const { hero } = useSiteImages()
+
+  useEffect(() => {
+    let active = true
+    fetchSiteSettings()
+      .then((settings) => {
+        if (active && settings?.hero_image) {
+          setSiteImages({ hero: settings.hero_image })
+        }
+      })
+      .catch(() => {
+        // fall back to the bundled image if the API is unavailable
+      })
+    return () => {
+      active = false
+    }
+  }, [])
+
   return (
     <section className="relative overflow-hidden pt-24 sm:pt-28">
       <div className="mx-auto grid max-w-7xl items-center gap-10 px-4 pb-8 pt-8 sm:px-6 lg:grid-cols-2 lg:gap-6 lg:px-8 lg:pb-20 lg:pt-16">
         <div className="flex flex-col items-start gap-6 animate-fade-up">
           <span className="inline-flex items-center gap-2 rounded-full border border-accent/60 bg-accent/15 px-4 py-1.5 text-xs font-medium uppercase tracking-[0.2em] text-accent-foreground">
             <Sparkles className="size-3.5" />
-            Handcrafted in Algeria
+            Nyra Jewellery
           </span>
           <h1 className="text-balance font-serif text-4xl font-semibold leading-tight text-primary sm:text-5xl lg:text-6xl">
-            Timeless jewelry, made to be remembered.
+            Elegance for every day.
           </h1>
           <p className="max-w-md text-pretty text-lg leading-relaxed text-muted-foreground">
-            Discover Nyra&apos;s curated collections of rings, necklaces,
-            bracelets and sets. Browse, add to your cart, and request your
+            Discover our curated collection of stainless steel jewelry,
+            thoughtfully selected to elevate every outfit with timeless gold
+            and silver finishes. Browse, add to your cart, and request your
             order — we&apos;ll take care of the rest.
           </p>
           <div className="flex flex-wrap items-center gap-3">
@@ -44,9 +68,9 @@ export function Hero() {
             <div className="h-8 w-px bg-border" />
             <div>
               <p className="font-serif text-2xl font-semibold text-primary">
-                100%
+                Stainless
               </p>
-              <p>Handcrafted</p>
+              <p>Steel</p>
             </div>
             <div className="h-8 w-px bg-border" />
             <div>
@@ -61,7 +85,7 @@ export function Hero() {
         <div className="relative animate-fade-up [animation-delay:120ms]">
           <div className="relative aspect-[4/5] overflow-hidden rounded-[2.5rem] border border-border shadow-2xl sm:aspect-[4/4.5]">
             <Image
-              src="/images/hero.png"
+              src={hero}
               alt="Model wearing Nyra Jewellery gold rings and emerald pendant"
               fill
               priority

@@ -38,8 +38,9 @@ export function Footer() {
               Jewellery
             </span>
             <p className="mt-4 max-w-xs text-sm leading-relaxed text-primary-foreground/80">
-              Handcrafted luxury jewelry for the moments that matter. Browse,
-              request, and let us take care of the rest.
+              Modern stainless steel jewelry, thoughtfully selected for the
+              moments that matter. Browse, request, and let us take care of
+              the rest.
             </p>
           </div>
 

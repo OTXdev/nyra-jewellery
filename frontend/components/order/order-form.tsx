@@ -24,6 +24,7 @@ export function OrderForm() {
     address: "",
     notes: "",
   })
+  const [deliveryMethod, setDeliveryMethod] = useState<"home" | "stopdesk">("home")
   const [errors, setErrors] = useState<Record<string, string>>({})
   const [submitting, setSubmitting] = useState(false)
   const [submitError, setSubmitError] = useState<string | null>(null)
@@ -35,7 +36,9 @@ export function OrderForm() {
 
   // Apply free-delivery rule on the frontend display to match backend behaviour.
   const rawDeliveryFee = selectedWilaya?.deliveryFee ?? 0
-  const deliveryFee = delivery.freeDelivery ? 0 : rawDeliveryFee
+  const rawStopdeskFee = selectedWilaya?.stopdeskFee ?? selectedWilaya?.deliveryFee ?? 0
+  const chosenRawFee = deliveryMethod === "home" ? rawDeliveryFee : rawStopdeskFee
+  const deliveryFee = delivery.freeDelivery ? 0 : chosenRawFee
   const estimatedTotal = subtotal + deliveryFee
 
   if (!hydrated) return <div className="py-24 text-center text-muted-foreground">Loading…</div>
@@ -61,7 +64,8 @@ export function OrderForm() {
     if (!/^[0-9+\s]{8,}$/.test(form.phone.trim())) e.phone = "Please enter a valid phone number."
     if (!form.wilayaId) e.wilaya = "Please select your wilaya."
     if (!form.commune.trim()) e.commune = "Please enter your commune."
-    if (!form.address.trim()) e.address = "Please enter your delivery address."
+    // Address is required only for home delivery; for stopdesk pickup it's optional.
+    if (deliveryMethod === "home" && !form.address.trim()) e.address = "Please enter your delivery address."
     setErrors(e)
     return Object.keys(e).length === 0
   }
@@ -79,6 +83,7 @@ export function OrderForm() {
         wilaya_id: Number(form.wilayaId),
         commune: form.commune.trim(),
         address: form.address.trim(),
+        delivery_method: deliveryMethod,
         notes: form.notes.trim() || undefined,
         items: cart.map((i) => ({
           product_id: i.productId,
@@ -127,6 +132,33 @@ export function OrderForm() {
           </div>
 
           <div className="grid gap-4 sm:grid-cols-2">
+            <Field label="Delivery method">
+              <div className="flex gap-3">
+                <label className="inline-flex items-center gap-2">
+                  <input
+                    type="radio"
+                    name="delivery_method"
+                    checked={deliveryMethod === "home"}
+                    onChange={() => setDeliveryMethod("home")}
+                    className="accent-primary"
+                  />
+                  <span>À domicile</span>
+                </label>
+                <label className="inline-flex items-center gap-2">
+                  <input
+                    type="radio"
+                    name="delivery_method"
+                    checked={deliveryMethod === "stopdesk"}
+                    onChange={() => setDeliveryMethod("stopdesk")}
+                    className="accent-primary"
+                  />
+                  <span>Au bureau (pickup)</span>
+                </label>
+              </div>
+            </Field>
+          </div>
+
+          <div className="grid gap-4 sm:grid-cols-2">
             <Field label="Wilaya" error={errors.wilaya}>
               <select
                 value={form.wilayaId}
@@ -135,11 +167,16 @@ export function OrderForm() {
                 disabled={wilayasLoading}
               >
                 <option value="">{wilayasLoading ? "Loading…" : "Select wilaya"}</option>
-                {wilayas.map((w) => (
-                  <option key={w.id} value={w.id}>
-                    {w.name} — {formatDZD(delivery.freeDelivery ? 0 : w.deliveryFee)} delivery
-                  </option>
-                ))}
+                {wilayas.map((w) => {
+                  const stopdesk = w.stopdeskFee ?? w.deliveryFee
+                  const fee = delivery.freeDelivery ? 0 : deliveryMethod === "home" ? w.deliveryFee : stopdesk
+                  const label = deliveryMethod === "home" ? `${formatDZD(fee)} delivery` : `${formatDZD(fee)} pickup`
+                  return (
+                    <option key={w.id} value={w.id}>
+                      {w.name} — {label}
+                    </option>
+                  )
+                })}
               </select>
             </Field>
             <Field label="Commune" error={errors.commune}>
@@ -152,14 +189,16 @@ export function OrderForm() {
             </Field>
           </div>
 
-          <Field label="Delivery address" error={errors.address}>
-            <input
-              value={form.address}
-              onChange={(e) => setForm({ ...form, address: e.target.value })}
-              className="input"
-              placeholder="Street, building, apartment…"
-            />
-          </Field>
+          {deliveryMethod === "home" && (
+            <Field label="Delivery address" error={errors.address}>
+              <input
+                value={form.address}
+                onChange={(e) => setForm({ ...form, address: e.target.value })}
+                className="input"
+                placeholder="Street, building, apartment…"
+              />
+            </Field>
+          )}
 
           <Field label="Order notes (optional)">
             <textarea
@@ -206,12 +245,12 @@ export function OrderForm() {
               <span className="font-medium">{formatDZD(subtotal)}</span>
             </div>
             <div className="flex items-center justify-between">
-              <span className="text-muted-foreground">Delivery</span>
+              <span className="text-muted-foreground">{deliveryMethod === "home" ? "Delivery (À domicile)" : "Pickup (Au bureau)"}</span>
               <span className="font-medium">
                 {delivery.freeDelivery ? (
                   <span className="text-primary">Free</span>
                 ) : selectedWilaya ? (
-                  formatDZD(rawDeliveryFee)
+                  formatDZD(chosenRawFee)
                 ) : (
                   "Select a wilaya"
                 )}

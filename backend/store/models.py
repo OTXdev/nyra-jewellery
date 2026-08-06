@@ -156,8 +156,19 @@ class Order(models.Model):
     phone = models.CharField(max_length=30)
     wilaya = models.CharField(max_length=100)
     commune = models.CharField(max_length=150)
-    address = models.TextField()
+    address = models.TextField(blank=True)
     notes = models.TextField(blank=True)
+    
+    DELIVERY_METHOD_CHOICES = [
+        ("home", "À domicile"),
+        ("stopdesk", "Au bureau"),
+    ]
+    delivery_method = models.CharField(
+        max_length=20,
+        choices=DELIVERY_METHOD_CHOICES,
+        default="home",
+        help_text="Delivery method: 'home' (À domicile) or 'stopdesk' (Au bureau)",
+    )
 
     status = models.CharField(
         max_length=20, choices=Status.choices, default=Status.NEW
@@ -232,6 +243,12 @@ class SiteSettings(models.Model):
     address = models.CharField(max_length=200, blank=True)
     instagram = models.URLField(blank=True)
     tiktok = models.URLField(blank=True)
+    hero_image = models.ImageField(
+        upload_to="site/", blank=True, null=True, help_text="Homepage hero image"
+    )
+    about_image = models.ImageField(
+        upload_to="site/", blank=True, null=True, help_text="About page image"
+    )
     updated_at = models.DateTimeField(auto_now=True)
 
     class Meta:

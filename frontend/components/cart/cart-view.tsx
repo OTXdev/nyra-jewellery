@@ -21,7 +21,7 @@ export function CartView() {
           <ShoppingBag className="size-7" />
         </div>
         <h2 className="mt-6 font-serif text-2xl">Your cart is empty</h2>
-        <p className="mt-2 text-muted-foreground">Discover our handcrafted pieces and find something to treasure.</p>
+        <p className="mt-2 text-muted-foreground">Discover our curated collection of modern stainless steel jewelry.</p>
         <Link
           href="/shop"
           className="mt-6 inline-block rounded-full bg-primary px-6 py-3 text-sm font-medium text-primary-foreground transition-opacity hover:opacity-90"

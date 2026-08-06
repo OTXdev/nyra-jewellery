@@ -174,6 +174,21 @@ class AdminOrderViewSet(viewsets.ReadOnlyModelViewSet):
         serializer.save()
         return Response(OrderSerializer(order).data)
 
+    @action(detail=False, methods=["post"], url_path="bulk-delete")
+    def bulk_delete(self, request):
+        """Admin: POST /api/admin/orders/bulk-delete/ with {"ids": [...]}."""
+        ids = request.data.get("ids", [])
+        if not isinstance(ids, list) or not ids:
+            return Response(
+                {"detail": "No orders selected."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+        deleted, _ = Order.objects.filter(id__in=ids).delete()
+        return Response(
+            {"detail": f"Deleted {deleted} order(s)."},
+            status=status.HTTP_200_OK,
+        )
+
 
 # ---------------------------------------------------------------------------
 # Contact messages
@@ -211,7 +226,10 @@ class AdminStatsView(APIView):
 
     def get(self, request):
         orders = Order.objects.all()
-        total_revenue = orders.aggregate(total=Sum("total"))["total"] or 0
+        # Revenue counts only DELIVERED orders.
+        total_revenue = (
+            orders.filter(status=Order.Status.DELIVERED).aggregate(total=Sum("total"))["total"] or 0
+        )
         total_orders = orders.count()
 
         orders_by_status = {
@@ -235,6 +253,15 @@ class AdminStatsView(APIView):
             status=status.HTTP_200_OK,
         )
 
+    def post(self, request):
+        """
+        Reset revenue to 0. Revenue is the sum of DELIVERED orders only, so
+        this deletes all delivered orders, which zeroes the revenue figure.
+        """
+        # Delete only delivered orders — that's what counts toward revenue.
+        Order.objects.filter(status=Order.Status.DELIVERED).delete()
+        return self.get(request)
+
 
 # ---------------------------------------------------------------------------
 # Site Settings — public GET, admin PATCH
@@ -245,6 +272,8 @@ class SiteSettingsView(APIView):
     GET  /api/site-settings/ — public, returns contact info for the footer.
     PATCH /api/site-settings/ — admin only, updates contact/social fields.
     """
+
+    parser_classes = [MultiPartParser, FormParser, JSONParser]
 
     def get_permissions(self):
         if self.request.method in ("PATCH", "PUT"):

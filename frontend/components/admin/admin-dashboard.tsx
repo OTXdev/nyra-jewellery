@@ -11,6 +11,7 @@ import {
   Package,
   Pencil,
   Plus,
+  RotateCcw,
   Settings,
   ShoppingCart,
   Trash2,
@@ -20,13 +21,16 @@ import { useStore } from "@/components/store/store-provider"
 import { useAdminAuth } from "@/lib/admin-auth"
 import {
   ApiError,
+  deleteOrders,
   fetchAdminOrders,
   fetchAdminStats,
   fetchCategories,
   fetchSiteSettings,
+  resetAdminRevenue,
   updateAdminAccount,
   updateCategoryImage,
   updateOrderStatus as apiUpdateOrderStatus,
+  updateSiteImage,
   updateSiteSettings,
   type AdminStats,
   type ApiCategory,
@@ -35,6 +39,7 @@ import {
 } from "@/lib/api"
 import { CATEGORY_LABELS } from "@/lib/data"
 import { formatDZD } from "@/lib/format"
+import { setSiteImages } from "@/lib/site-images"
 import type { Category, Order, OrderStatus, Product } from "@/lib/types"
 import { cn } from "@/lib/utils"
 
@@ -149,6 +154,18 @@ function Dashboard({ token, onLogout }: { token: string; onLogout: () => void })
     setOrders((prev) => prev.map((o) => (o.id === id ? updated : o)))
   }
 
+  async function handleResetRevenue() {
+    const updated = await resetAdminRevenue(token)
+    setStats(updated)
+  }
+
+  async function handleBulkDelete(ids: number[]) {
+    await deleteOrders(token, ids)
+    setOrders((prev) => prev.filter((o) => !ids.includes(o.id)))
+    // Refresh stats too so the totals reflect the deletions.
+    fetchAdminStats(token).then(setStats).catch(() => {})
+  }
+
   const TABS: { id: Tab; label: string }[] = [
     { id: "overview", label: "Overview" },
     { id: "orders", label: "Orders" },
@@ -202,9 +219,16 @@ function Dashboard({ token, onLogout }: { token: string; onLogout: () => void })
       </div>
 
       <div className="mt-6">
-        {tab === "overview" && <Overview orders={orders} loading={ordersLoading} />}
+        {tab === "overview" && (
+          <Overview orders={orders} loading={ordersLoading} onResetRevenue={handleResetRevenue} />
+        )}
         {tab === "orders" && (
-          <OrdersTable orders={orders} loading={ordersLoading} onStatus={handleStatusChange} />
+          <OrdersTable
+            orders={orders}
+            loading={ordersLoading}
+            onStatus={handleStatusChange}
+            onBulkDelete={handleBulkDelete}
+          />
         )}
         {tab === "products" && (
           <ProductsTable
@@ -254,33 +278,110 @@ function Stat({
 // Overview tab
 // ---------------------------------------------------------------------------
 
-function Overview({ orders, loading }: { orders: Order[]; loading: boolean }) {
-  const recent = orders.slice(0, 5)
-  if (loading) return <p className="rounded-3xl border border-dashed border-border p-10 text-center text-muted-foreground">Loading orders…</p>
-  if (orders.length === 0) {
-    return <p className="rounded-3xl border border-dashed border-border p-10 text-center text-muted-foreground">No orders yet.</p>
+function Overview({
+  orders,
+  loading,
+  onResetRevenue,
+}: {
+  orders: Order[]
+  loading: boolean
+  onResetRevenue: () => Promise<void>
+}) {
+  const [confirming, setConfirming] = useState(false)
+  const [resetting, setResetting] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+
+  async function confirmReset() {
+    setResetting(true)
+    setError(null)
+    try {
+      await onResetRevenue()
+      setConfirming(false)
+    } catch (err) {
+      setError(err instanceof ApiError ? err.message : "Could not reset revenue. Please try again.")
+    } finally {
+      setResetting(false)
+    }
   }
+
+  const recent = orders.slice(0, 5)
+
   return (
-    <div className="rounded-3xl border border-border bg-card p-6 shadow-sm">
-      <h2 className="font-serif text-lg">Recent orders</h2>
-      <ul className="mt-4 divide-y divide-border">
-        {recent.map((o) => (
-          <li key={o.id} className="flex items-center justify-between py-3 text-sm">
-            <div>
-              <p className="font-medium">{o.fullName}</p>
-              <p className="text-xs text-muted-foreground">
-                {o.orderNumber} · {o.wilaya}
-              </p>
+    <div className="space-y-6">
+      <div className="rounded-3xl border border-border bg-card p-6 shadow-sm">
+        <div className="flex flex-wrap items-center justify-between gap-4">
+          <div>
+            <h2 className="font-serif text-lg">Revenue control</h2>
+            <p className="text-xs text-muted-foreground">
+              Cancelled orders are never counted. Reset the revenue figure to 0 for a fresh start.
+            </p>
+          </div>
+          <button
+            onClick={() => setConfirming(true)}
+            className="inline-flex items-center gap-2 rounded-full border border-destructive/40 px-4 py-2 text-sm font-medium text-destructive hover:bg-destructive/10"
+          >
+            <RotateCcw className="size-4" /> Reset revenue
+          </button>
+        </div>
+        {error && <p className="mt-3 text-sm text-destructive">{error}</p>}
+      </div>
+
+      {confirming && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-foreground/50 p-4" role="dialog" aria-modal="true">
+          <div className="w-full max-w-sm rounded-3xl bg-card p-6 shadow-xl">
+            <h3 className="font-serif text-xl">Reset revenue?</h3>
+            <p className="mt-2 text-sm text-muted-foreground">
+              This will set the total revenue to 0. All orders except the ones still marked as{" "}
+              <span className="font-medium text-foreground">new</span> will stop counting toward revenue.
+              This action cannot be undone.
+            </p>
+            <div className="mt-6 flex justify-end gap-3">
+              <button
+                onClick={() => setConfirming(false)}
+                disabled={resetting}
+                className="rounded-full border border-border px-5 py-2.5 text-sm hover:bg-secondary disabled:opacity-50"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={confirmReset}
+                disabled={resetting}
+                className="rounded-full bg-destructive px-5 py-2.5 text-sm font-medium text-destructive-foreground disabled:opacity-50"
+              >
+                {resetting ? "Resetting…" : "Yes, reset"}
+              </button>
             </div>
-            <div className="text-right">
-              <p className="font-medium text-primary">{formatDZD(o.total)}</p>
-              <span className={cn("rounded-full px-2 py-0.5 text-xs capitalize", STATUS_STYLES[o.status])}>
-                {o.status}
-              </span>
-            </div>
-          </li>
-        ))}
-      </ul>
+          </div>
+        </div>
+      )}
+
+      {loading ? (
+        <p className="rounded-3xl border border-dashed border-border p-10 text-center text-muted-foreground">Loading orders…</p>
+      ) : orders.length === 0 ? (
+        <p className="rounded-3xl border border-dashed border-border p-10 text-center text-muted-foreground">No orders yet.</p>
+      ) : (
+        <div className="rounded-3xl border border-border bg-card p-6 shadow-sm">
+          <h2 className="font-serif text-lg">Recent orders</h2>
+          <ul className="mt-4 divide-y divide-border">
+            {recent.map((o) => (
+              <li key={o.id} className="flex items-center justify-between py-3 text-sm">
+                <div>
+                  <p className="font-medium">{o.fullName}</p>
+                  <p className="text-xs text-muted-foreground">
+                    {o.orderNumber} · {o.wilaya} · {o.deliveryMethod === "stopdesk" ? "Au bureau" : o.deliveryMethod === "home" ? "À domicile" : ""}
+                  </p>
+                </div>
+                <div className="text-right">
+                  <p className="font-medium text-primary">{formatDZD(o.total)}</p>
+                  <span className={cn("rounded-full px-2 py-0.5 text-xs capitalize", STATUS_STYLES[o.status])}>
+                    {o.status}
+                  </span>
+                </div>
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
     </div>
   )
 }
@@ -306,6 +407,7 @@ function exportOrdersToExcel(orders: Order[]) {
     "Wilaya",
     "Commune",
     "Address",
+    "Delivery Method",
     "Items",
     "Subtotal (DA)",
     "Delivery (DA)",
@@ -318,6 +420,7 @@ function exportOrdersToExcel(orders: Order[]) {
     const itemsSummary = o.items
       .map((i) => `${i.name} x${i.quantity}${i.size ? ` (${i.size})` : ""}`)
       .join(" | ")
+    const methodLabel = o.deliveryMethod === "stopdesk" ? "Au bureau" : o.deliveryMethod === "home" ? "À domicile" : ""
     return [
       o.orderNumber,
       new Date(o.createdAt).toLocaleDateString("fr-DZ"),
@@ -326,6 +429,7 @@ function exportOrdersToExcel(orders: Order[]) {
       o.wilaya,
       o.commune,
       o.address,
+      methodLabel,
       itemsSummary,
       o.subtotal,
       o.deliveryFee,
@@ -345,59 +449,177 @@ function exportOrdersToExcel(orders: Order[]) {
   URL.revokeObjectURL(url)
 }
 
+const STATUS_FILTERS: { value: OrderStatus | "all"; label: string }[] = [
+  { value: "all", label: "All" },
+  { value: "new", label: "New" },
+  { value: "confirmed", label: "Confirmed" },
+  { value: "shipped", label: "Shipped" },
+  { value: "delivered", label: "Delivered" },
+  { value: "cancelled", label: "Cancelled" },
+]
+
 function OrdersTable({
   orders,
   loading,
   onStatus,
+  onBulkDelete,
 }: {
   orders: Order[]
   loading: boolean
   onStatus: (id: number, s: OrderStatus) => void
+  onBulkDelete: (ids: number[]) => Promise<void>
 }) {
+  const [filter, setFilter] = useState<OrderStatus | "all">("all")
+  const [selected, setSelected] = useState<Set<number>>(new Set())
+  const [deleting, setDeleting] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+
+  const visible = filter === "all" ? orders : orders.filter((o) => o.status === filter)
+  const allVisibleSelected = visible.length > 0 && visible.every((o) => selected.has(o.id))
+
+  function toggle(id: number) {
+    setSelected((prev) => {
+      const next = new Set(prev)
+      if (next.has(id)) next.delete(id)
+      else next.add(id)
+      return next
+    })
+  }
+
+  function toggleAll() {
+    setSelected((prev) => {
+      const next = new Set(prev)
+      if (allVisibleSelected) {
+        visible.forEach((o) => next.delete(o.id))
+      } else {
+        visible.forEach((o) => next.add(o.id))
+      }
+      return next
+    })
+  }
+
+  async function handleBulkDelete() {
+    const ids = Array.from(selected)
+    if (ids.length === 0) return
+    setDeleting(true)
+    setError(null)
+    try {
+      await onBulkDelete(ids)
+      setSelected(new Set())
+    } catch (err) {
+      setError(err instanceof ApiError ? err.message : "Could not delete the selected orders.")
+    } finally {
+      setDeleting(false)
+    }
+  }
+
   if (loading) {
     return <p className="rounded-3xl border border-dashed border-border p-10 text-center text-muted-foreground">Loading orders…</p>
   }
 
   return (
     <div>
-      <div className="mb-4 flex items-center justify-between gap-4">
-        <p className="text-sm text-muted-foreground">{orders.length} order{orders.length !== 1 ? "s" : ""} total</p>
-        <button
-          onClick={() => exportOrdersToExcel(orders)}
-          disabled={orders.length === 0}
-          className="inline-flex items-center gap-2 rounded-full border border-border px-4 py-2 text-sm hover:bg-secondary disabled:opacity-50"
-        >
-          <Download className="size-4" /> Export CSV (Excel)
-        </button>
+      <div className="mb-4 flex flex-wrap items-center justify-between gap-4">
+        {/* Status filter */}
+        <div className="flex flex-wrap gap-1.5">
+          {STATUS_FILTERS.map((f) => (
+            <button
+              key={f.value}
+              onClick={() => {
+                setFilter(f.value)
+                setSelected(new Set())
+              }}
+              className={cn(
+                "rounded-full border px-3 py-1.5 text-xs font-medium transition-colors",
+                filter === f.value
+                  ? "border-primary bg-primary text-primary-foreground"
+                  : "border-border bg-card text-muted-foreground hover:text-foreground",
+              )}
+            >
+              {f.label}
+            </button>
+          ))}
+        </div>
+
+        <div className="flex items-center gap-2">
+          {/* Bulk delete */}
+          <button
+            onClick={handleBulkDelete}
+            disabled={selected.size === 0 || deleting}
+            className="inline-flex items-center gap-2 rounded-full border border-destructive/40 px-4 py-2 text-sm font-medium text-destructive hover:bg-destructive/10 disabled:opacity-40"
+          >
+            <Trash2 className="size-4" /> Delete ({selected.size})
+          </button>
+          <button
+            onClick={() => exportOrdersToExcel(visible)}
+            disabled={visible.length === 0}
+            className="inline-flex items-center gap-2 rounded-full border border-border px-4 py-2 text-sm hover:bg-secondary disabled:opacity-50"
+          >
+            <Download className="size-4" /> Export CSV (Excel)
+          </button>
+        </div>
       </div>
+
+      {error && <p className="mb-4 text-sm text-destructive">{error}</p>}
 
       {orders.length === 0 ? (
         <p className="rounded-3xl border border-dashed border-border p-10 text-center text-muted-foreground">
           No orders yet. Orders placed in the store will appear here.
         </p>
+      ) : visible.length === 0 ? (
+        <p className="rounded-3xl border border-dashed border-border p-10 text-center text-muted-foreground">
+          No orders with the selected status.
+        </p>
       ) : (
         <div className="space-y-3">
-          {orders.map((o) => (
-            <div key={o.id} className="rounded-3xl border border-border bg-card p-5 shadow-sm">
+          {/* Header row with select-all */}
+          <div className="flex items-center gap-3 rounded-3xl border border-border bg-card px-5 py-2 text-xs font-medium text-muted-foreground">
+            <input
+              type="checkbox"
+              checked={allVisibleSelected}
+              onChange={toggleAll}
+              className="size-4 accent-primary"
+            />
+            <span>
+              {visible.length} order{visible.length !== 1 ? "s" : ""} · {selected.size} selected
+            </span>
+          </div>
+
+          {visible.map((o) => (
+            <div
+              key={o.id}
+              className={cn(
+                "rounded-3xl border bg-card p-5 shadow-sm transition-colors",
+                selected.has(o.id) ? "border-primary" : "border-border",
+              )}
+            >
               <div className="flex flex-wrap items-start justify-between gap-3">
-                <div>
-                  <p className="font-medium">
-                    {o.fullName} · <span className="text-muted-foreground">{o.phone}</span>
-                  </p>
-                  <p className="text-xs text-muted-foreground">
-                    {o.orderNumber} · {new Date(o.createdAt).toLocaleDateString()} · {o.address}, {o.commune}, {o.wilaya}
-                  </p>
+                <div className="flex items-start gap-3">
+                  <input
+                    type="checkbox"
+                    checked={selected.has(o.id)}
+                    onChange={() => toggle(o.id)}
+                    className="mt-1 size-4 accent-primary"
+                  />
+                  <div>
+                    <p className="font-medium">
+                      {o.fullName} · <span className="text-muted-foreground">{o.phone}</span>
+                    </p>
+                    <p className="text-xs text-muted-foreground">
+                      {o.orderNumber} · {new Date(o.createdAt).toLocaleDateString()} · {o.address}, {o.commune}, {o.wilaya} · {o.deliveryMethod === "stopdesk" ? "Au bureau" : o.deliveryMethod === "home" ? "À domicile" : ""}
+                    </p>
+                  </div>
                 </div>
                 <p className="font-semibold text-primary">{formatDZD(o.total)}</p>
               </div>
-              <ul className="mt-3 flex flex-wrap gap-2 text-xs text-muted-foreground">
+              <ul className="ml-7 mt-3 flex flex-wrap gap-2 text-xs text-muted-foreground">
                 {o.items.map((i) => (
                   <li key={`${i.productId}-${i.size ?? "na"}`} className="rounded-full bg-secondary px-2.5 py-1">
                     {i.name} x{i.quantity}
                   </li>
                 ))}
               </ul>
-              <div className="mt-4 flex flex-wrap items-center gap-2">
+              <div className="ml-7 mt-4 flex flex-wrap items-center gap-2">
                 <select
                   value={o.status}
                   onChange={(e) => onStatus(o.id, e.target.value as OrderStatus)}
@@ -493,6 +715,7 @@ function SettingsPanel({ token }: { token: string }) {
     <div className="space-y-6">
       <AccountSettings token={token} />
       <ContactSettings token={token} />
+      <HomepageImageSettings token={token} />
       <CategoryImageSettings token={token} />
     </div>
   )
@@ -641,6 +864,8 @@ function ContactSettings({ token }: { token: string }) {
     address: "",
     instagram: "",
     tiktok: "",
+    hero_image: null,
+    about_image: null,
   })
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
@@ -776,6 +1001,125 @@ function ContactSettings({ token }: { token: string }) {
   )
 }
 
+// -- Homepage Images ---------------------------------------------------------
+
+function HomepageImageSettings({ token }: { token: string }) {
+  const [settings, setSettings] = useState<SiteSettings | null>(null)
+  const [loading, setLoading] = useState(true)
+  const [uploading, setUploading] = useState<"hero_image" | "about_image" | null>(null)
+  const [errors, setErrors] = useState<Record<string, string>>({})
+  const [previews, setPreviews] = useState<Record<string, string>>({})
+
+  useEffect(() => {
+    fetchSiteSettings()
+      .then(setSettings)
+      .catch(() => {})
+      .finally(() => setLoading(false))
+  }, [])
+
+  async function handleImageChange(field: "hero_image" | "about_image", file: File) {
+    const reader = new FileReader()
+    reader.onload = () =>
+      setPreviews((p) => ({ ...p, [field]: reader.result as string }))
+    reader.readAsDataURL(file)
+
+    setUploading(field)
+    setErrors((e) => ({ ...e, [field]: "" }))
+    try {
+      const updated = await updateSiteImage(token, field, file)
+      setSettings(updated)
+      // Update the reactive store so the hero/about image on the storefront
+      // changes instantly, without a page refresh.
+      if (updated[field]) {
+        setSiteImages(field === "hero_image" ? { hero: updated[field] } : { about: updated[field] })
+      }
+    } catch (err) {
+      setErrors((e) => ({
+        ...e,
+        [field]: err instanceof ApiError ? err.message : "Upload failed. Please try again.",
+      }))
+    } finally {
+      setUploading(null)
+    }
+  }
+
+  if (loading) {
+    return (
+      <div className="rounded-3xl border border-border bg-card p-6 shadow-sm">
+        <p className="text-sm text-muted-foreground">Loading images…</p>
+      </div>
+    )
+  }
+
+  const items: { field: "hero_image" | "about_image"; label: string; hint: string }[] = [
+    { field: "hero_image", label: "Homepage hero", hint: "Shown at the top of the homepage." },
+    { field: "about_image", label: "About page", hint: "Shown on the About page." },
+  ]
+
+  return (
+    <div className="rounded-3xl border border-border bg-card p-6 shadow-sm">
+      <div className="mb-5 flex items-center gap-3">
+        <span className="flex size-9 items-center justify-center rounded-full bg-primary/10 text-primary">
+          <ImageIcon className="size-5" />
+        </span>
+        <div>
+          <h2 className="font-serif text-lg">Homepage Images</h2>
+          <p className="text-xs text-muted-foreground">
+            Upload or replace the images used on the homepage hero and the About page.
+          </p>
+        </div>
+      </div>
+
+      <div className="grid gap-6 sm:grid-cols-2">
+        {items.map((item) => {
+          const current = settings?.[item.field]
+          const previewSrc = previews[item.field] || current || "/placeholder.svg"
+          const isUploading = uploading === item.field
+          return (
+            <div key={item.field} className="space-y-2">
+              <div className="flex items-center justify-between">
+                <p className="text-sm font-medium">{item.label}</p>
+                <p className="text-xs text-muted-foreground">{item.hint}</p>
+              </div>
+              <div className="relative aspect-[4/5] overflow-hidden rounded-2xl border border-border bg-secondary">
+                <Image
+                  src={previewSrc}
+                  alt={item.label}
+                  fill
+                  sizes="(max-width: 1024px) 50vw, 25vw"
+                  className="object-cover"
+                />
+                {isUploading && (
+                  <div className="absolute inset-0 flex items-center justify-center bg-background/60">
+                    <span className="text-xs text-muted-foreground">Uploading…</span>
+                  </div>
+                )}
+              </div>
+              <label className="inline-flex w-full cursor-pointer items-center justify-center gap-2 rounded-full border border-border px-3 py-2 text-xs font-medium hover:bg-secondary">
+                <ImageIcon className="size-3.5" /> Change image
+                <input
+                  type="file"
+                  accept="image/*"
+                  className="hidden"
+                  disabled={isUploading}
+                  onChange={(e) => {
+                    const file = e.target.files?.[0]
+                    if (file) handleImageChange(item.field, file)
+                    e.target.value = ""
+                  }}
+                />
+              </label>
+              {errors[item.field] && (
+                <p className="text-xs text-destructive">{errors[item.field]}</p>
+              )}
+            </div>
+          )
+        })}
+      </div>
+    </div>
+  )
+}
+
 // -- Category Images ---------------------------------------------------------
 
 function CategoryImageSettings({ token }: { token: string }) {
@@ -868,7 +1212,6 @@ function CategoryImageSettings({ token }: { token: string }) {
                   onChange={(e) => {
                     const file = e.target.files?.[0]
                     if (file) handleImageChange(cat.slug, file)
-                    // Reset input so the same file can be re-selected.
                     e.target.value = ""
                   }}
                 />
@@ -1070,7 +1413,7 @@ function ProductEditor({
               <span className="mb-1 block font-medium">Availability</span>
               <select
                 className="input"
-value={form.inStock ? "in-stock" : "out-of-stock"}
+                value={form.inStock ? "in-stock" : "out-of-stock"}
                 onChange={(e) => setForm({ ...form, inStock: e.target.value === "in-stock" })}
               >
                 <option value="in-stock">In stock</option>

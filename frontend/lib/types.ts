@@ -64,6 +64,8 @@ export interface Order {
   wilaya: string
   commune: string
   address: string
+  // Delivery method: 'home' | 'stopdesk'
+  deliveryMethod?: "home" | "stopdesk"
   notes?: string
   items: OrderLine[]
   subtotal: number

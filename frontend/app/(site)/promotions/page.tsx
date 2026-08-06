@@ -14,7 +14,7 @@ export default function PromotionsPage() {
       <PageHeader
         eyebrow="Limited Time"
         title="Promotions & Offers"
-        description="Treasured pieces at exceptional prices. These offers won't last long."
+        description="Selected pieces at exceptional prices. These offers won&apos;t last long."
       />
       <div className="mx-auto max-w-6xl px-4 pb-8 md:px-6">
         <DeliveryOffers />

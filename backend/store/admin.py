@@ -64,11 +64,11 @@ class OrderItemInline(admin.TabularInline):
 
 @admin.register(Order)
 class OrderAdmin(admin.ModelAdmin):
-    list_display = ["order_number", "customer_name", "phone", "wilaya", "status", "total", "created_at"]
-    list_filter = ["status", "wilaya"]
+    list_display = ["order_number", "customer_name", "phone", "wilaya", "delivery_method", "status", "total", "created_at"]
+    list_filter = ["status", "wilaya", "delivery_method"]
     search_fields = ["order_number", "customer_name", "phone"]
     inlines = [OrderItemInline]
-    readonly_fields = ["order_number", "subtotal", "delivery_fee", "total", "created_at", "updated_at"]
+    readonly_fields = ["order_number", "subtotal", "delivery_fee", "total", "delivery_method", "created_at", "updated_at"]
 
 
 @admin.register(ContactMessage)

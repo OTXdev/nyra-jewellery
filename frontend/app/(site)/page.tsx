@@ -56,7 +56,7 @@ export default function HomePage() {
         <SectionHeading
           eyebrow="Shop by category"
           title="Find your perfect piece"
-          description="From everyday elegance to statement luxury, explore our four signature categories."
+          description="From everyday elegance to special occasions, explore our four signature categories."
           className="mb-10"
         />
         <Categories />
@@ -81,7 +81,7 @@ export default function HomePage() {
           <SectionHeading
             eyebrow="Our promise"
             title="Delivery offers, on us"
-            description="The more you treasure, the more you save."
+            description="The more you add to your cart, the more you save."
             className="mb-8"
           />
           <DeliveryOffers />
@@ -93,7 +93,7 @@ export default function HomePage() {
         <SectionHeading
           eyebrow="Curated"
           title="Featured collections"
-          description="Each collection tells its own story, crafted with intention and care."
+          description="Each collection tells its own story, thoughtfully assembled to complement your style."
           className="mb-10"
         />
         <CollectionsShowcase />
@@ -140,7 +140,7 @@ export default function HomePage() {
           <ViewAll href="/shop?category=sets" />
         </div>
         <ProductGrid products={sets} />
-</section>
+      </section>
     </>
   )
 }
