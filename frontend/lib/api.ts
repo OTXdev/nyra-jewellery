@@ -182,6 +182,50 @@ export async function fetchCollections(): Promise<Collection[]> {
   return (list || []).map(mapApiCollection)
 }
 
+export interface CollectionWritePayload {
+  name: string
+  description?: string
+  featured?: boolean
+}
+
+export async function createCollection(token: string, payload: CollectionWritePayload): Promise<Collection> {
+  const data = await apiFetch("/collections/", {
+    method: "POST",
+    token,
+    body: JSON.stringify(payload),
+  })
+  return mapApiCollection(data)
+}
+
+export async function updateCollection(
+  token: string,
+  slug: string,
+  payload: Partial<CollectionWritePayload>,
+): Promise<Collection> {
+  const data = await apiFetch(`/collections/${slug}/`, {
+    method: "PATCH",
+    token,
+    body: JSON.stringify(payload),
+  })
+  return mapApiCollection(data)
+}
+
+export async function deleteCollection(token: string, slug: string) {
+  return apiFetch(`/collections/${slug}/`, { method: "DELETE", token })
+}
+
+/** Upload or replace the image for a collection. */
+export async function updateCollectionImage(token: string, slug: string, imageFile: File): Promise<Collection> {
+  const form = new FormData()
+  form.append("image", imageFile)
+  const data = await apiFetch(`/collections/${slug}/`, {
+    method: "PATCH",
+    token,
+    body: form,
+  })
+  return mapApiCollection(data)
+}
+
 export async function fetchWilayas(): Promise<Wilaya[]> {
   const data = await apiFetch("/wilayas/")
   const list = Array.isArray(data) ? data : data.results

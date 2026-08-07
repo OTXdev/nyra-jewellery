@@ -8,6 +8,7 @@ import {
   ImageIcon,
   KeyRound,
   LayoutDashboard,
+  Layers,
   Package,
   Pencil,
   Plus,
@@ -21,21 +22,27 @@ import { useStore } from "@/components/store/store-provider"
 import { useAdminAuth, getAdminToken } from "@/lib/admin-auth"
 import {
   ApiError,
+  createCollection,
+  deleteCollection,
   deleteOrders,
   deleteProductImage,
   fetchAdminOrders,
   fetchAdminStats,
   fetchCategories,
+  fetchCollections,
   fetchProductImages,
   fetchSiteSettings,
   resetAdminRevenue,
   updateAdminAccount,
   updateCategoryImage,
+  updateCollection,
+  updateCollectionImage,
   updateOrderStatus as apiUpdateOrderStatus,
   updateSiteImage,
   updateSiteSettings,
   type AdminStats,
   type ApiCategory,
+  type CollectionWritePayload,
   type ProductWritePayload,
   type SiteSettings,
 } from "@/lib/api"
@@ -45,7 +52,7 @@ import { setSiteImages } from "@/lib/site-images"
 import type { Category, Order, OrderStatus, Product } from "@/lib/types"
 import { cn } from "@/lib/utils"
 
-type Tab = "overview" | "orders" | "products" | "settings"
+type Tab = "overview" | "orders" | "products" | "collections" | "settings"
 
 const STATUS_STYLES: Record<OrderStatus, string> = {
   new: "bg-accent/30 text-accent-foreground",
@@ -142,7 +149,7 @@ export function AdminDashboard() {
 // ---------------------------------------------------------------------------
 
 function Dashboard({ token, onLogout }: { token: string; onLogout: () => void }) {
-  const { products, deleteProduct, productsLoading } = useStore()
+  const { products, deleteProduct, productsLoading, collections } = useStore()
   const [tab, setTab] = useState<Tab>("overview")
   const [editing, setEditing] = useState<Product | "new" | null>(null)
   const [orders, setOrders] = useState<Order[]>([])
@@ -180,6 +187,7 @@ function Dashboard({ token, onLogout }: { token: string; onLogout: () => void })
     { id: "overview", label: "Aperçu" },
     { id: "orders", label: "Commandes" },
     { id: "products", label: "Produits" },
+    { id: "collections", label: "Collections" },
     { id: "settings", label: "Paramètres" },
   ]
 
@@ -240,7 +248,7 @@ function Dashboard({ token, onLogout }: { token: string; onLogout: () => void })
             onBulkDelete={handleBulkDelete}
           />
         )}
-        {tab === "products" && (
+{tab === "products" && (
           <ProductsTable
             products={products}
             loading={productsLoading}
@@ -248,6 +256,9 @@ function Dashboard({ token, onLogout }: { token: string; onLogout: () => void })
             onNew={() => setEditing("new")}
             onDelete={(slug) => deleteProduct(slug)}
           />
+        )}
+{tab === "collections" && (
+          <CollectionsPanel token={token} collections={collections} products={products} />
         )}
         {tab === "settings" && <SettingsPanel token={token} />}
       </div>
@@ -712,6 +723,294 @@ function ProductsTable({
           ))}
         </div>
       )}
+    </div>
+  )
+}
+
+// ---------------------------------------------------------------------------
+// Collections tab
+// ---------------------------------------------------------------------------
+
+function CollectionsPanel({
+  token,
+  collections,
+  products,
+}: {
+  token: string
+  collections: import("@/lib/types").Collection[]
+  products: Product[]
+}) {
+  const [loading, setLoading] = useState(true)
+  const [localCollections, setLocalCollections] = useState(collections)
+  const [editing, setEditing] = useState<import("@/lib/types").Collection | "new" | null>(null)
+  const [error, setError] = useState<string | null>(null)
+
+  useEffect(() => {
+    fetchCollections()
+      .then(setLocalCollections)
+      .catch(() => {})
+      .finally(() => setLoading(false))
+  }, [])
+
+  async function handleDelete(c: import("@/lib/types").Collection) {
+    if (!confirm(`Supprimer la collection "${c.name}" ?`)) return
+    setError(null)
+    try {
+      await deleteCollection(token, c.slug)
+      setLocalCollections((prev) => prev.filter((x) => x.slug !== c.slug))
+    } catch (err) {
+      setError(err instanceof ApiError ? err.message : "Impossible de supprimer la collection.")
+    }
+  }
+
+  return (
+    <div>
+      <div className="mb-4 flex items-center justify-between">
+        <p className="text-sm text-muted-foreground">
+          Gérez les collections présentées sur la page d'accueil et la page Collections.
+        </p>
+        <button
+          onClick={() => setEditing("new")}
+          className="inline-flex items-center gap-2 rounded-full bg-primary px-5 py-2.5 text-sm font-medium text-primary-foreground"
+        >
+          <Plus className="size-4" /> Ajouter une collection
+        </button>
+      </div>
+
+      {error && <p className="mb-4 text-sm text-destructive">{error}</p>}
+
+      {loading ? (
+        <p className="rounded-3xl border border-dashed border-border p-10 text-center text-muted-foreground">
+          Chargement des collections…
+        </p>
+      ) : localCollections.length === 0 ? (
+        <div className="rounded-3xl border border-dashed border-border bg-card p-14 text-center">
+          <Layers className="mx-auto size-10 text-muted-foreground" />
+          <p className="mt-3 font-serif text-xl text-primary">Aucune collection</p>
+          <p className="mt-2 text-sm text-muted-foreground">
+            Créez votre première collection pour la présenter sur le site.
+          </p>
+          <button
+            onClick={() => setEditing("new")}
+            className="mt-5 inline-flex items-center gap-2 rounded-full bg-primary px-6 py-2.5 text-sm font-medium text-primary-foreground"
+          >
+            <Plus className="size-4" /> Créer une collection
+          </button>
+        </div>
+      ) : (
+        <div className="space-y-3">
+{localCollections.map((c) => {
+            const count = products.length
+              ? products.filter((p) => p.collection === c.name).length
+              : 0
+            return (
+              <div
+                key={c.id}
+                className="flex items-center gap-4 rounded-3xl border border-border bg-card p-4 shadow-sm"
+              >
+                <div className="relative size-16 shrink-0 overflow-hidden rounded-2xl bg-secondary">
+                  <Image
+                    src={c.image || "/placeholder.svg"}
+                    alt={c.name}
+                    fill
+                    sizes="64px"
+                    className="object-cover"
+                  />
+                </div>
+                <div className="min-w-0 flex-1">
+                  <p className="truncate font-medium">
+                    {c.name}
+                    {c.featured && (
+                      <span className="ml-2 rounded-full bg-accent/30 px-2 py-0.5 text-xs font-medium text-accent-foreground">
+                        À la une
+                      </span>
+                    )}
+                  </p>
+                  <p className="truncate text-xs text-muted-foreground">
+                    {c.description || "Aucune description"}
+                    {count > 0 ? ` · ${count} produit${count !== 1 ? "s" : ""}` : ""}
+                  </p>
+                </div>
+                <div className="flex gap-1">
+                  <button
+                    onClick={() => setEditing(c)}
+                    aria-label="Modifier"
+                    className="rounded-full p-2 text-muted-foreground hover:bg-secondary hover:text-foreground"
+                  >
+                    <Pencil className="size-4" />
+                  </button>
+                  <button
+                    onClick={() => handleDelete(c)}
+                    aria-label="Supprimer"
+                    className="rounded-full p-2 text-muted-foreground hover:bg-destructive/10 hover:text-destructive"
+                  >
+                    <Trash2 className="size-4" />
+                  </button>
+                </div>
+              </div>
+            )
+          })}
+        </div>
+      )}
+
+      {editing && (
+        <CollectionEditor
+          token={token}
+          initial={editing}
+          onClose={() => setEditing(null)}
+          onSaved={(saved) => {
+            setLocalCollections((prev) => {
+              const exists = prev.some((x) => x.slug === saved.slug)
+              return exists
+                ? prev.map((x) => (x.slug === saved.slug ? saved : x))
+                : [saved, ...prev]
+            })
+          }}
+        />
+      )}
+    </div>
+  )
+}
+
+// -- Collection editor modal ------------------------------------------------
+
+interface CollectionEditorProps {
+  token: string
+  initial: import("@/lib/types").Collection | "new"
+  onClose: () => void
+  onSaved: (c: import("@/lib/types").Collection) => void
+}
+
+function CollectionEditor({ token, initial, onClose, onSaved }: CollectionEditorProps) {
+  const isNew = initial === "new"
+  const [name, setName] = useState(isNew ? "" : initial.name)
+  const [description, setDescription] = useState(isNew ? "" : initial.description)
+  const [featured, setFeatured] = useState(isNew ? false : initial.featured)
+  const [imageFile, setImageFile] = useState<File | null>(null)
+  const [preview, setPreview] = useState<string | null>(isNew ? null : initial.image)
+  const [saving, setSaving] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+
+  function handleFile(f: File) {
+    setImageFile(f)
+    const reader = new FileReader()
+    reader.onload = () => setPreview(reader.result as string)
+    reader.readAsDataURL(f)
+  }
+
+  async function save() {
+    setError(null)
+    if (!name.trim()) {
+      setError("Veuillez saisir un nom pour la collection.")
+      return
+    }
+    setSaving(true)
+    try {
+      let saved: import("@/lib/types").Collection
+      const payload: CollectionWritePayload = {
+        name: name.trim(),
+        description: description.trim(),
+        featured,
+      }
+      if (isNew) {
+        saved = await createCollection(token, payload)
+        if (imageFile) {
+          saved = await updateCollectionImage(token, saved.slug, imageFile)
+        }
+      } else {
+        saved = await updateCollection(token, initial.slug, payload)
+        if (imageFile) {
+          saved = await updateCollectionImage(token, saved.slug, imageFile)
+        }
+      }
+      onSaved(saved)
+      onClose()
+    } catch (err) {
+      setError(err instanceof ApiError ? err.message : "Impossible d'enregistrer la collection.")
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  return (
+    <div
+      className="fixed inset-0 z-50 flex items-end justify-center bg-foreground/50 p-4 sm:items-center"
+      role="dialog"
+      aria-modal="true"
+    >
+      <div className="max-h-[85vh] w-full max-w-md overflow-y-auto rounded-3xl bg-card p-6 shadow-xl">
+        <h2 className="font-serif text-xl">
+          {isNew ? "Ajouter une collection" : "Modifier la collection"}
+        </h2>
+
+        <div className="mt-4 space-y-4">
+          <label className="block text-sm">
+            <span className="mb-1 block font-medium">Nom</span>
+            <input className="input" value={name} onChange={(e) => setName(e.target.value)} />
+          </label>
+
+          <label className="block text-sm">
+            <span className="mb-1 block font-medium">Image</span>
+            <div className="relative aspect-[16/10] overflow-hidden rounded-2xl border border-border bg-secondary">
+              <Image
+                src={preview || "/placeholder.svg"}
+                alt={name || "Image de la collection"}
+                fill
+                sizes="(max-width: 768px) 100vw, 50vw"
+                className="object-cover"
+              />
+            </div>
+            <label className="mt-2 inline-flex w-full cursor-pointer items-center justify-center gap-2 rounded-full border border-border px-3 py-2 text-xs font-medium hover:bg-secondary">
+              <ImageIcon className="size-3.5" /> {preview ? "Changer l'image" : "Ajouter une image"}
+              <input
+                type="file"
+                accept="image/*"
+                className="hidden"
+                onChange={(e) => {
+                  const f = e.target.files?.[0]
+                  if (f) handleFile(f)
+                  e.target.value = ""
+                }}
+              />
+            </label>
+          </label>
+
+          <label className="block text-sm">
+            <span className="mb-1 block font-medium">Description</span>
+            <textarea
+              rows={3}
+              className="input resize-none"
+              value={description}
+              onChange={(e) => setDescription(e.target.value)}
+            />
+          </label>
+
+          <label className="flex items-center gap-2 text-sm">
+            <input
+              type="checkbox"
+              checked={featured}
+              onChange={(e) => setFeatured(e.target.checked)}
+              className="accent-primary"
+            />
+            Mettre en vedette (conseillé)
+          </label>
+        </div>
+
+        {error && <p className="mt-3 text-sm text-destructive">{error}</p>}
+
+        <div className="mt-6 flex justify-end gap-3">
+          <button onClick={onClose} className="rounded-full border border-border px-5 py-2.5 text-sm hover:bg-secondary">
+            Annuler
+          </button>
+          <button
+            onClick={save}
+            disabled={saving}
+            className="rounded-full bg-primary px-5 py-2.5 text-sm font-medium text-primary-foreground disabled:opacity-50"
+          >
+            {saving ? "Enregistrement…" : "Enregistrer"}
+          </button>
+        </div>
+      </div>
     </div>
   )
 }
@@ -1360,6 +1659,7 @@ interface EditorForm {
   name: string
   description: string
   categorySlug: Category
+  collectionSlug: string
   price: number
   oldPrice: number | ""
   material: string
@@ -1377,10 +1677,13 @@ function ProductEditor({
   initial: Product | "new"
   onClose: () => void
 }) {
-  const { addProduct, updateProduct } = useStore()
+const { addProduct, updateProduct, collections } = useStore()
   const isNew = initial === "new"
 
   const [categories, setCategories] = useState<{ id: number; slug: Category; name: string }[]>([])
+  const [collectionsList, setCollectionsList] = useState<
+    { id: number; slug: string; name: string }[]
+  >(() => collections.map((c) => ({ id: c.id, slug: c.slug, name: c.name })))
   // Existing images (with backend id) for an edited product.
   const [existingImages, setExistingImages] = useState<
     { id: number; image: string; _removed?: boolean }[]
@@ -1410,12 +1713,13 @@ function ProductEditor({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
-  const base: EditorForm =
+const base: EditorForm =
     initial === "new"
-? {
+      ? {
           name: "",
           description: "",
           categorySlug: "rings",
+          collectionSlug: "",
           price: 0,
           oldPrice: "",
           material: "",
@@ -1429,6 +1733,9 @@ function ProductEditor({
           name: initial.name,
           description: initial.description,
           categorySlug: initial.category,
+          collectionSlug: initial.collection
+            ? collectionsList.find((c) => c.name === initial.collection)?.slug ?? ""
+            : "",
           price: initial.price,
           oldPrice: initial.oldPrice ?? "",
           material: initial.material,
@@ -1448,17 +1755,19 @@ function ProductEditor({
       setError("Les catégories sont encore en cours de chargement — veuillez patienter un instant et réessayer.")
       return
     }
+const collection = collectionsList.find((c) => c.slug === form.collectionSlug)
     const payload: ProductWritePayload = {
       name: form.name,
       description: form.description,
       category: category.id,
+      collection: collection ? collection.id : null,
       price: Number(form.price),
       old_price: form.oldPrice === "" ? null : Number(form.oldPrice),
       material: form.material,
       in_stock: form.inStock,
       is_new: form.isNew,
       is_best_seller: form.isBestSeller,
-on_promotion: form.onPromotion,
+      on_promotion: form.onPromotion,
       sizes: form.sizes,
     }
 
@@ -1614,7 +1923,7 @@ on_promotion: form.onPromotion,
                 ))}
               </select>
             </label>
-            <label className="block text-sm">
+<label className="block text-sm">
               <span className="mb-1 block font-medium">Disponibilité</span>
               <select
                 className="input"
@@ -1626,6 +1935,21 @@ on_promotion: form.onPromotion,
               </select>
             </label>
           </div>
+          <label className="block text-sm">
+            <span className="mb-1 block font-medium">Collection (facultatif)</span>
+            <select
+              className="input"
+              value={form.collectionSlug}
+              onChange={(e) => setForm({ ...form, collectionSlug: e.target.value })}
+            >
+              <option value="">Aucune collection</option>
+              {collectionsList.map((c) => (
+                <option key={c.slug} value={c.slug}>
+                  {c.name}
+                </option>
+              ))}
+            </select>
+          </label>
 <label className="block text-sm">
             <span className="mb-1 block font-medium">Matière</span>
             <input className="input" value={form.material} onChange={(e) => setForm({ ...form, material: e.target.value })} />

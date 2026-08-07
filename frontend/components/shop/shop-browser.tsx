@@ -62,7 +62,7 @@ export function ShopBrowser() {
     return { min: Math.min(...prices), max: Math.max(...prices) }
   }, [products])
 
-  const [query, setQuery] = useState('')
+const [query, setQuery] = useState('')
   const [category, setCategory] = useState<Category | 'all'>('all')
   const [maxPrice, setMaxPrice] = useState(priceBounds.max)
   const [promoOnly, setPromoOnly] = useState(false)
@@ -70,6 +70,7 @@ export function ShopBrowser() {
   const [bestOnly, setBestOnly] = useState(false)
   const [inStockOnly, setInStockOnly] = useState(false)
   const [ringSize, setRingSize] = useState<string | null>(null)
+  const [collection, setCollection] = useState<string | null>(null)
   const [sort, setSort] = useState<SortKey>('newest')
   const [filtersOpen, setFiltersOpen] = useState(false)
 
@@ -81,6 +82,8 @@ export function ShopBrowser() {
     if (filter === 'new') setNewOnly(true)
     if (filter === 'bestseller') setBestOnly(true)
     if (filter === 'promo') setPromoOnly(true)
+    const col = params.get('collection')
+    if (col) setCollection(col)
     const q = params.get('q')
     if (q) setQuery(q)
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -92,7 +95,8 @@ export function ShopBrowser() {
 
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase()
-    const list = products.filter((p) => {
+const list = products.filter((p) => {
+      if (collection !== null && p.collection !== collection) return false
       if (category !== 'all' && p.category !== category) return false
       if (maxPrice > 0 && p.price > maxPrice) return false
       if (promoOnly && !p.onPromotion) return false
@@ -127,7 +131,7 @@ export function ShopBrowser() {
         list.sort((a, b) => b.createdAt - a.createdAt)
     }
     return list
-  }, [products, query, category, maxPrice, promoOnly, newOnly, bestOnly, inStockOnly, ringSize, sort])
+  }, [products, query, category, maxPrice, promoOnly, newOnly, bestOnly, inStockOnly, ringSize, collection, sort])
 
   const resetAll = () => {
     setQuery('')
@@ -138,6 +142,7 @@ export function ShopBrowser() {
     setBestOnly(false)
     setInStockOnly(false)
     setRingSize(null)
+    setCollection(null)
     setSort('newest')
   }
 
@@ -297,8 +302,22 @@ export function ShopBrowser() {
           </div>
         </aside>
 
-        {/* Results */}
+{/* Results */}
         <div className="flex-1">
+          {collection ? (
+            <div className="mb-5 flex flex-wrap items-center justify-between gap-3 rounded-3xl border border-border bg-card p-4">
+              <div>
+                <p className="text-xs uppercase tracking-widest text-muted-foreground">Collection</p>
+                <p className="font-serif text-xl text-primary">{collection}</p>
+              </div>
+              <button
+                onClick={() => setCollection(null)}
+                className="inline-flex items-center gap-1.5 rounded-full border border-border px-3 py-1.5 text-sm hover:bg-secondary"
+              >
+                <X className="size-4" /> Effacer le filtre
+              </button>
+            </div>
+          ) : null}
           <p className="mb-5 text-sm text-muted-foreground">
             {filtered.length} {filtered.length === 1 ? 'pièce trouvée' : 'pièces trouvées'}
           </p>
