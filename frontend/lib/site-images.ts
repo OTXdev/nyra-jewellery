@@ -2,7 +2,7 @@
 
 import { useSyncExternalStore } from "react"
 
-export const HERO_FALLBACK = "/images/hero.png"
+export const HERO_FALLBACK = "/images/hero.jpg"
 export const ABOUT_FALLBACK = "/images/about.png"
 
 export interface SiteImages {
