@@ -1,6 +1,4 @@
-"""
-Django settings for the Nyra Jewellery backend project.
-"""
+
 from datetime import timedelta
 from pathlib import Path
 import os
@@ -79,9 +77,7 @@ TEMPLATES = [
 WSGI_APPLICATION = "nyra.wsgi.application"
 ASGI_APPLICATION = "nyra.asgi.application"
 
-# DATABASE
-# Uses PostgreSQL by default. Set DB_ENGINE=sqlite in .env for quick local
-# testing without a Postgres server.
+
 if os.environ.get("DB_ENGINE", "postgres") == "sqlite":
     DATABASES = {
         "default": {
