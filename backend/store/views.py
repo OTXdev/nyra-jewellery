@@ -63,6 +63,7 @@ class CollectionViewSet(viewsets.ModelViewSet):
     serializer_class = CollectionSerializer
     permission_classes = [IsAdminOrReadOnly]
     lookup_field = "slug"
+    parser_classes = [MultiPartParser, FormParser, JSONParser]
 
 
 # ---------------------------------------------------------------------------

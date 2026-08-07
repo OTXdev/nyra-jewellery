@@ -30,6 +30,8 @@ class CategorySerializer(serializers.ModelSerializer):
 
 
 class CollectionSerializer(serializers.ModelSerializer):
+    image = serializers.ImageField(required=False, allow_null=True)
+
     class Meta:
         model = Collection
         fields = ["id", "name", "slug", "description", "image", "featured"]
