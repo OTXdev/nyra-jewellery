@@ -10,11 +10,11 @@ import { SearchDialog } from './search-dialog'
 import { cn } from '@/lib/utils'
 
 const LINKS = [
-  { href: '/', label: 'Home' },
-  { href: '/shop', label: 'Shop' },
+  { href: '/', label: 'Accueil' },
+  { href: '/shop', label: 'Boutique' },
   { href: '/collections', label: 'Collections' },
   { href: '/promotions', label: 'Promotions' },
-  { href: '/about', label: 'About' },
+  { href: '/about', label: 'À propos' },
   { href: '/contact', label: 'Contact' },
 ]
 
@@ -49,7 +49,7 @@ export function Navbar() {
         <div className="mx-auto flex max-w-7xl items-center justify-between gap-4 px-4 py-3 sm:px-6 lg:px-8">
           <div className="flex items-center gap-3 lg:hidden">
             <button
-              aria-label="Open menu"
+              aria-label="Ouvrir le menu"
               onClick={() => setMenuOpen(true)}
               className="rounded-full p-1.5 text-foreground transition-colors hover:bg-secondary"
             >
@@ -84,7 +84,7 @@ export function Navbar() {
 
           <div className="flex items-center gap-1 sm:gap-2">
             <button
-              aria-label="Search"
+              aria-label="Rechercher"
               onClick={() => setSearchOpen(true)}
               className="rounded-full p-2 text-foreground transition-colors hover:bg-secondary"
             >
@@ -92,7 +92,7 @@ export function Navbar() {
             </button>
             <Link
               href="/cart"
-              aria-label="View cart"
+              aria-label="Voir le panier"
               className="relative rounded-full p-2 text-foreground transition-colors hover:bg-secondary"
             >
               <ShoppingBag className="size-5" />
@@ -129,7 +129,7 @@ export function Navbar() {
           <div className="mb-6 flex items-center justify-between">
             <Logo />
             <button
-              aria-label="Close menu"
+              aria-label="Fermer le menu"
               onClick={() => setMenuOpen(false)}
               className="rounded-full p-1.5 text-foreground transition-colors hover:bg-secondary"
             >

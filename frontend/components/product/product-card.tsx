@@ -26,12 +26,12 @@ export function ProductCard({ product }: { product: Product }) {
         {product.availability === 'out-of-stock' ? (
           <div className="absolute inset-0 flex items-center justify-center bg-card/60 backdrop-blur-[1px]">
             <span className="rounded-full bg-foreground/80 px-4 py-1.5 text-xs font-medium uppercase tracking-wider text-primary-foreground">
-              Sold Out
+              Épuisé
             </span>
           </div>
         ) : null}
         <span className="absolute inset-x-0 bottom-0 flex translate-y-full items-center justify-center gap-2 bg-primary/90 py-2.5 text-sm font-medium text-primary-foreground transition-transform duration-300 group-hover:translate-y-0">
-          <Eye className="size-4" /> View Details
+          <Eye className="size-4" /> Voir les détails
         </span>
       </div>
 

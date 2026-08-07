@@ -3,13 +3,13 @@ import { Suspense } from "react"
 import { OrderConfirmation } from "@/components/order/order-confirmation"
 
 export const metadata: Metadata = {
-  title: "Order Confirmed",
-  description: "Your Nyra Jewellery order has been received.",
+  title: "Commande confirmée",
+  description: "Votre commande Nyra Jewellery a bien été reçue.",
 }
 
 export default function ConfirmationPage() {
   return (
-    <Suspense fallback={<div className="py-24 text-center text-muted-foreground">Loading…</div>}>
+    <Suspense fallback={<div className="py-24 text-center text-muted-foreground">Chargement…</div>}>
       <OrderConfirmation />
     </Suspense>
   )

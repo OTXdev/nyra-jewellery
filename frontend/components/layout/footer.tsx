@@ -22,7 +22,7 @@ export function Footer() {
   const phone = settings?.phone || BRAND.whatsapp
   const phoneDisplay = settings?.phone_display || BRAND.whatsappDisplay
   const email = settings?.email || BRAND.email
-  const address = settings?.address || 'Alger, Algeria'
+  const address = settings?.address || 'Alger, Algérie'
   const instagram = settings?.instagram || BRAND.instagram
   const tiktok = settings?.tiktok || BRAND.tiktok
 
@@ -35,25 +35,25 @@ export function Footer() {
               Nyra
             </span>
             <span className="mt-1 block text-[0.6rem] uppercase tracking-[0.35em] text-primary-foreground/70">
-              Jewellery
+              Bijoux
             </span>
             <p className="mt-4 max-w-xs text-sm leading-relaxed text-primary-foreground/80">
-              Modern stainless steel jewelry, thoughtfully selected for the
-              moments that matter. Browse, request, and let us take care of
-              the rest.
+              Des bijoux modernes en acier inoxydable, soigneusement sélectionnés
+              pour les moments qui comptent. Parcourez, commandez, et laissez-nous
+              gérer le reste.
             </p>
           </div>
 
           <div>
             <h4 className="mb-4 text-sm font-semibold uppercase tracking-widest text-accent">
-              Explore
+              Explorer
             </h4>
             <ul className="space-y-2.5 text-sm text-primary-foreground/80">
               {[
-                { href: '/shop', label: 'Shop All' },
+                { href: '/shop', label: 'Tout le catalogue' },
                 { href: '/collections', label: 'Collections' },
                 { href: '/promotions', label: 'Promotions' },
-                { href: '/about', label: 'About Us' },
+                { href: '/about', label: 'À propos' },
                 { href: '/contact', label: 'Contact' },
               ].map((l) => (
                 <li key={l.href}>
@@ -70,7 +70,7 @@ export function Footer() {
 
           <div>
             <h4 className="mb-4 text-sm font-semibold uppercase tracking-widest text-accent">
-              Get in touch
+              Contactez-nous
             </h4>
             <ul className="space-y-3 text-sm text-primary-foreground/80">
               <li className="flex items-center gap-2.5">
@@ -111,7 +111,7 @@ export function Footer() {
 
         <div className="mt-14 flex flex-col items-center justify-between gap-4 border-t border-primary-foreground/15 pt-8 text-xs text-primary-foreground/60 sm:flex-row">
           <p>
-            © {new Date().getFullYear()} Nyra Jewellery. All rights reserved.
+            © {new Date().getFullYear()} Nyra Jewellery. Tous droits réservés.
           </p>
         </div>
       </div>

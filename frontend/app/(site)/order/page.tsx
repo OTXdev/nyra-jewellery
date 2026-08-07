@@ -2,8 +2,8 @@ import type { Metadata } from "next"
 import { OrderForm } from "@/components/order/order-form"
 
 export const metadata: Metadata = {
-  title: "Place Your Order",
-  description: "Complete your Nyra Jewellery order with cash on delivery across Algeria.",
+  title: "Passer votre commande",
+  description: "Finalisez votre commande Nyra Jewellery avec paiement à la livraison partout en Algérie.",
 }
 
 export default function OrderPage() {

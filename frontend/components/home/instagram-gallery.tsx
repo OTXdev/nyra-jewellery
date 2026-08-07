@@ -22,9 +22,9 @@ export function InstagramGallery() {
           rel="noopener noreferrer"
           className="group relative aspect-square overflow-hidden rounded-2xl border border-border"
         >
-          <Image
+<Image
             src={src || '/placeholder.svg'}
-            alt="Nyra Jewellery on Instagram"
+            alt="Nyra Jewellery sur Instagram"
             fill
             sizes="(max-width: 1024px) 33vw, 16vw"
             className="object-cover transition-transform duration-500 group-hover:scale-110"

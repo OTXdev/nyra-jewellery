@@ -18,13 +18,15 @@ import {
   User,
 } from "lucide-react"
 import { useStore } from "@/components/store/store-provider"
-import { useAdminAuth } from "@/lib/admin-auth"
+import { useAdminAuth, getAdminToken } from "@/lib/admin-auth"
 import {
   ApiError,
   deleteOrders,
+  deleteProductImage,
   fetchAdminOrders,
   fetchAdminStats,
   fetchCategories,
+  fetchProductImages,
   fetchSiteSettings,
   resetAdminRevenue,
   updateAdminAccount,
@@ -53,6 +55,14 @@ const STATUS_STYLES: Record<OrderStatus, string> = {
   cancelled: "bg-destructive/15 text-destructive",
 }
 
+const STATUS_LABELS: Record<OrderStatus, string> = {
+  new: "Nouvelle",
+  confirmed: "Confirmée",
+  shipped: "Expédiée",
+  delivered: "Livrée",
+  cancelled: "Annulée",
+}
+
 // ---------------------------------------------------------------------------
 // Root component — handles auth gate
 // ---------------------------------------------------------------------------
@@ -65,7 +75,7 @@ export function AdminDashboard() {
   const [submitting, setSubmitting] = useState(false)
 
   if (checking) {
-    return <div className="py-24 text-center text-muted-foreground">Loading…</div>
+    return <div className="py-24 text-center text-muted-foreground">Chargement…</div>
   }
 
   if (!authed || !token) {
@@ -75,8 +85,8 @@ export function AdminDashboard() {
           <div className="mx-auto mb-4 flex size-12 items-center justify-center rounded-full bg-primary/10 text-primary">
             <LayoutDashboard className="size-6" />
           </div>
-          <h1 className="text-center font-serif text-2xl">Admin Access</h1>
-          <p className="mt-1 text-center text-sm text-muted-foreground">Log in to manage the store.</p>
+          <h1 className="text-center font-serif text-2xl">Accès administrateur</h1>
+          <p className="mt-1 text-center text-sm text-muted-foreground">Connectez-vous pour gérer la boutique.</p>
           <form
             onSubmit={async (e) => {
               e.preventDefault()
@@ -85,7 +95,7 @@ export function AdminDashboard() {
               try {
                 await login(username, password)
               } catch (error) {
-                setErr(error instanceof ApiError ? error.message : "Login failed. Please try again.")
+                setErr(error instanceof ApiError ? error.message : "Connexion échouée. Veuillez réessayer.")
               } finally {
                 setSubmitting(false)
               }
@@ -95,7 +105,7 @@ export function AdminDashboard() {
             <input
               value={username}
               onChange={(e) => setUsername(e.target.value)}
-              placeholder="Username"
+              placeholder="Nom d'utilisateur"
               className="input text-center"
               autoComplete="username"
             />
@@ -103,7 +113,7 @@ export function AdminDashboard() {
               type="password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              placeholder="Password"
+              placeholder="Mot de passe"
               className="input text-center"
               autoComplete="current-password"
             />
@@ -113,11 +123,11 @@ export function AdminDashboard() {
               disabled={submitting}
               className="w-full rounded-full bg-primary px-6 py-3 text-sm font-medium text-primary-foreground disabled:opacity-60"
             >
-              {submitting ? "Signing in…" : "Enter dashboard"}
+              {submitting ? "Connexion…" : "Entrer dans le tableau de bord"}
             </button>
           </form>
           <Link href="/" className="mt-4 block text-center text-xs text-muted-foreground hover:text-foreground">
-            Back to store
+            Retour à la boutique
           </Link>
         </div>
       </div>
@@ -167,39 +177,39 @@ function Dashboard({ token, onLogout }: { token: string; onLogout: () => void })
   }
 
   const TABS: { id: Tab; label: string }[] = [
-    { id: "overview", label: "Overview" },
-    { id: "orders", label: "Orders" },
-    { id: "products", label: "Products" },
-    { id: "settings", label: "Settings" },
+    { id: "overview", label: "Aperçu" },
+    { id: "orders", label: "Commandes" },
+    { id: "products", label: "Produits" },
+    { id: "settings", label: "Paramètres" },
   ]
 
   return (
     <div className="mx-auto max-w-6xl px-4 py-10 md:px-6">
       <div className="flex flex-wrap items-center justify-between gap-4">
         <div>
-          <h1 className="font-serif text-3xl">Dashboard</h1>
-          <p className="text-sm text-muted-foreground">Manage products and orders</p>
+          <h1 className="font-serif text-3xl">Tableau de bord</h1>
+          <p className="text-sm text-muted-foreground">Gérez les produits et les commandes</p>
         </div>
         <div className="flex items-center gap-3">
           <Link href="/" className="rounded-full border border-border px-4 py-2 text-sm hover:bg-secondary">
-            View store
+            Voir la boutique
           </Link>
           <button onClick={onLogout} className="rounded-full border border-border px-4 py-2 text-sm hover:bg-secondary">
-            Log out
+            Se déconnecter
           </button>
         </div>
       </div>
 
       {/* Stats */}
       <div className="mt-6 grid gap-4 sm:grid-cols-3">
-        <Stat label="Total revenue" value={stats ? formatDZD(stats.totalRevenue) : "…"} icon={ShoppingCart} />
+        <Stat label="Chiffre d'affaires" value={stats ? formatDZD(stats.totalRevenue) : "…"} icon={ShoppingCart} />
         <Stat
-          label="Orders"
+          label="Commandes"
           value={stats ? `${stats.totalOrders}` : "…"}
-          sub={stats ? `${stats.ordersByStatus.new ?? 0} new` : undefined}
+          sub={stats ? `${stats.ordersByStatus.new ?? 0} nouvelles` : undefined}
           icon={Package}
         />
-        <Stat label="Products" value={stats ? `${stats.totalProducts}` : `${products.length}`} icon={LayoutDashboard} />
+        <Stat label="Produits" value={stats ? `${stats.totalProducts}` : `${products.length}`} icon={LayoutDashboard} />
       </div>
 
       {/* Tabs */}
@@ -298,7 +308,7 @@ function Overview({
       await onResetRevenue()
       setConfirming(false)
     } catch (err) {
-      setError(err instanceof ApiError ? err.message : "Could not reset revenue. Please try again.")
+      setError(err instanceof ApiError ? err.message : "Impossible de réinitialiser le chiffre d'affaires. Veuillez réessayer.")
     } finally {
       setResetting(false)
     }
@@ -311,16 +321,16 @@ function Overview({
       <div className="rounded-3xl border border-border bg-card p-6 shadow-sm">
         <div className="flex flex-wrap items-center justify-between gap-4">
           <div>
-            <h2 className="font-serif text-lg">Revenue control</h2>
+            <h2 className="font-serif text-lg">Contrôle du chiffre d'affaires</h2>
             <p className="text-xs text-muted-foreground">
-              Cancelled orders are never counted. Reset the revenue figure to 0 for a fresh start.
+              Les commandes annulées ne sont jamais comptées. Réinitialisez le chiffre d'affaires à 0 pour repartir de zéro.
             </p>
           </div>
           <button
             onClick={() => setConfirming(true)}
             className="inline-flex items-center gap-2 rounded-full border border-destructive/40 px-4 py-2 text-sm font-medium text-destructive hover:bg-destructive/10"
           >
-            <RotateCcw className="size-4" /> Reset revenue
+            <RotateCcw className="size-4" /> Réinitialiser le chiffre d'affaires
           </button>
         </div>
         {error && <p className="mt-3 text-sm text-destructive">{error}</p>}
@@ -329,11 +339,11 @@ function Overview({
       {confirming && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-foreground/50 p-4" role="dialog" aria-modal="true">
           <div className="w-full max-w-sm rounded-3xl bg-card p-6 shadow-xl">
-            <h3 className="font-serif text-xl">Reset revenue?</h3>
+            <h3 className="font-serif text-xl">Réinitialiser le chiffre d'affaires ?</h3>
             <p className="mt-2 text-sm text-muted-foreground">
-              This will set the total revenue to 0. All orders except the ones still marked as{" "}
-              <span className="font-medium text-foreground">new</span> will stop counting toward revenue.
-              This action cannot be undone.
+              Cela mettra le chiffre d'affaires total à 0. Toutes les commandes, sauf celles encore marquées comme{" "}
+              <span className="font-medium text-foreground">nouvelles</span>, ne compteront plus dans le chiffre
+              d'affaires. Cette action est irréversible.
             </p>
             <div className="mt-6 flex justify-end gap-3">
               <button
@@ -341,14 +351,14 @@ function Overview({
                 disabled={resetting}
                 className="rounded-full border border-border px-5 py-2.5 text-sm hover:bg-secondary disabled:opacity-50"
               >
-                Cancel
+                Annuler
               </button>
               <button
                 onClick={confirmReset}
                 disabled={resetting}
                 className="rounded-full bg-destructive px-5 py-2.5 text-sm font-medium text-destructive-foreground disabled:opacity-50"
               >
-                {resetting ? "Resetting…" : "Yes, reset"}
+                {resetting ? "Réinitialisation…" : "Oui, réinitialiser"}
               </button>
             </div>
           </div>
@@ -356,12 +366,12 @@ function Overview({
       )}
 
       {loading ? (
-        <p className="rounded-3xl border border-dashed border-border p-10 text-center text-muted-foreground">Loading orders…</p>
+        <p className="rounded-3xl border border-dashed border-border p-10 text-center text-muted-foreground">Chargement des commandes…</p>
       ) : orders.length === 0 ? (
-        <p className="rounded-3xl border border-dashed border-border p-10 text-center text-muted-foreground">No orders yet.</p>
+        <p className="rounded-3xl border border-dashed border-border p-10 text-center text-muted-foreground">Aucune commande pour le moment.</p>
       ) : (
         <div className="rounded-3xl border border-border bg-card p-6 shadow-sm">
-          <h2 className="font-serif text-lg">Recent orders</h2>
+          <h2 className="font-serif text-lg">Commandes récentes</h2>
           <ul className="mt-4 divide-y divide-border">
             {recent.map((o) => (
               <li key={o.id} className="flex items-center justify-between py-3 text-sm">
@@ -374,7 +384,7 @@ function Overview({
                 <div className="text-right">
                   <p className="font-medium text-primary">{formatDZD(o.total)}</p>
                   <span className={cn("rounded-full px-2 py-0.5 text-xs capitalize", STATUS_STYLES[o.status])}>
-                    {o.status}
+                    {STATUS_LABELS[o.status]}
                   </span>
                 </div>
               </li>
@@ -400,19 +410,19 @@ function exportOrdersToExcel(orders: Order[]) {
   }
 
   const headers = [
-    "Order #",
+    "Commande n°",
     "Date",
-    "Customer",
-    "Phone",
+    "Client",
+    "Téléphone",
     "Wilaya",
     "Commune",
-    "Address",
-    "Delivery Method",
-    "Items",
-    "Subtotal (DA)",
-    "Delivery (DA)",
+    "Adresse",
+    "Mode de livraison",
+    "Articles",
+    "Sous-total (DA)",
+    "Livraison (DA)",
     "Total (DA)",
-    "Status",
+    "Statut",
     "Notes",
   ]
 
@@ -434,7 +444,7 @@ function exportOrdersToExcel(orders: Order[]) {
       o.subtotal,
       o.deliveryFee,
       o.total,
-      o.status,
+      STATUS_LABELS[o.status],
       o.notes ?? "",
     ].map(escape)
   })
@@ -444,18 +454,18 @@ function exportOrdersToExcel(orders: Order[]) {
   const url = URL.createObjectURL(blob)
   const a = document.createElement("a")
   a.href = url
-  a.download = `nyra-orders-${new Date().toISOString().slice(0, 10)}.csv`
+  a.download = `nyra-commandes-${new Date().toISOString().slice(0, 10)}.csv`
   a.click()
   URL.revokeObjectURL(url)
 }
 
 const STATUS_FILTERS: { value: OrderStatus | "all"; label: string }[] = [
-  { value: "all", label: "All" },
-  { value: "new", label: "New" },
-  { value: "confirmed", label: "Confirmed" },
-  { value: "shipped", label: "Shipped" },
-  { value: "delivered", label: "Delivered" },
-  { value: "cancelled", label: "Cancelled" },
+  { value: "all", label: "Toutes" },
+  { value: "new", label: "Nouvelles" },
+  { value: "confirmed", label: "Confirmées" },
+  { value: "shipped", label: "Expédiées" },
+  { value: "delivered", label: "Livrées" },
+  { value: "cancelled", label: "Annulées" },
 ]
 
 function OrdersTable({
@@ -507,14 +517,14 @@ function OrdersTable({
       await onBulkDelete(ids)
       setSelected(new Set())
     } catch (err) {
-      setError(err instanceof ApiError ? err.message : "Could not delete the selected orders.")
+      setError(err instanceof ApiError ? err.message : "Impossible de supprimer les commandes sélectionnées.")
     } finally {
       setDeleting(false)
     }
   }
 
   if (loading) {
-    return <p className="rounded-3xl border border-dashed border-border p-10 text-center text-muted-foreground">Loading orders…</p>
+    return <p className="rounded-3xl border border-dashed border-border p-10 text-center text-muted-foreground">Chargement des commandes…</p>
   }
 
   return (
@@ -548,14 +558,14 @@ function OrdersTable({
             disabled={selected.size === 0 || deleting}
             className="inline-flex items-center gap-2 rounded-full border border-destructive/40 px-4 py-2 text-sm font-medium text-destructive hover:bg-destructive/10 disabled:opacity-40"
           >
-            <Trash2 className="size-4" /> Delete ({selected.size})
+            <Trash2 className="size-4" /> Supprimer ({selected.size})
           </button>
           <button
             onClick={() => exportOrdersToExcel(visible)}
             disabled={visible.length === 0}
             className="inline-flex items-center gap-2 rounded-full border border-border px-4 py-2 text-sm hover:bg-secondary disabled:opacity-50"
           >
-            <Download className="size-4" /> Export CSV (Excel)
+            <Download className="size-4" /> Exporter CSV (Excel)
           </button>
         </div>
       </div>
@@ -564,11 +574,11 @@ function OrdersTable({
 
       {orders.length === 0 ? (
         <p className="rounded-3xl border border-dashed border-border p-10 text-center text-muted-foreground">
-          No orders yet. Orders placed in the store will appear here.
+          Aucune commande pour le moment. Les commandes passées dans la boutique apparaîtront ici.
         </p>
       ) : visible.length === 0 ? (
         <p className="rounded-3xl border border-dashed border-border p-10 text-center text-muted-foreground">
-          No orders with the selected status.
+          Aucune commande avec ce statut.
         </p>
       ) : (
         <div className="space-y-3">
@@ -581,7 +591,7 @@ function OrdersTable({
               className="size-4 accent-primary"
             />
             <span>
-              {visible.length} order{visible.length !== 1 ? "s" : ""} · {selected.size} selected
+              {visible.length} commande{visible.length !== 1 ? "s" : ""} · {selected.size} sélectionnée{selected.size !== 1 ? "s" : ""}
             </span>
           </div>
 
@@ -606,7 +616,7 @@ function OrdersTable({
                       {o.fullName} · <span className="text-muted-foreground">{o.phone}</span>
                     </p>
                     <p className="text-xs text-muted-foreground">
-                      {o.orderNumber} · {new Date(o.createdAt).toLocaleDateString()} · {o.address}, {o.commune}, {o.wilaya} · {o.deliveryMethod === "stopdesk" ? "Au bureau" : o.deliveryMethod === "home" ? "À domicile" : ""}
+                      {o.orderNumber} · {new Date(o.createdAt).toLocaleDateString("fr-DZ")} · {o.address}, {o.commune}, {o.wilaya} · {o.deliveryMethod === "stopdesk" ? "Au bureau" : o.deliveryMethod === "home" ? "À domicile" : ""}
                     </p>
                   </div>
                 </div>
@@ -625,13 +635,13 @@ function OrdersTable({
                   onChange={(e) => onStatus(o.id, e.target.value as OrderStatus)}
                   className="rounded-full border border-border bg-background px-3 py-1.5 text-xs"
                 >
-                  <option value="new">New</option>
-                  <option value="confirmed">Confirmed</option>
-                  <option value="shipped">Shipped</option>
-                  <option value="delivered">Delivered</option>
-                  <option value="cancelled">Cancelled</option>
+                  <option value="new">Nouvelle</option>
+                  <option value="confirmed">Confirmée</option>
+                  <option value="shipped">Expédiée</option>
+                  <option value="delivered">Livrée</option>
+                  <option value="cancelled">Annulée</option>
                 </select>
-                <span className={cn("rounded-full px-3 py-1 text-xs capitalize", STATUS_STYLES[o.status])}>{o.status}</span>
+                <span className={cn("rounded-full px-3 py-1 text-xs capitalize", STATUS_STYLES[o.status])}>{STATUS_LABELS[o.status]}</span>
               </div>
             </div>
           ))}
@@ -664,10 +674,10 @@ function ProductsTable({
         onClick={onNew}
         className="mb-4 inline-flex items-center gap-2 rounded-full bg-primary px-5 py-2.5 text-sm font-medium text-primary-foreground"
       >
-        <Plus className="size-4" /> Add product
+        <Plus className="size-4" /> Ajouter un produit
       </button>
       {loading ? (
-        <p className="rounded-3xl border border-dashed border-border p-10 text-center text-muted-foreground">Loading products…</p>
+        <p className="rounded-3xl border border-dashed border-border p-10 text-center text-muted-foreground">Chargement des produits…</p>
       ) : (
         <div className="space-y-3">
           {products.map((p) => (
@@ -678,21 +688,21 @@ function ProductsTable({
               <div className="min-w-0 flex-1">
                 <p className="truncate font-medium">{p.name}</p>
                 <p className="text-xs text-muted-foreground">
-                  {CATEGORY_LABELS[p.category]} · {p.availability === "in-stock" ? "In stock" : "Out of stock"}
+                  {CATEGORY_LABELS[p.category]} · {p.availability === "in-stock" ? "En stock" : "Rupture de stock"}
                 </p>
               </div>
               <span className="text-sm font-medium text-primary">{formatDZD(p.price)}</span>
               <div className="flex gap-1">
                 <button
                   onClick={() => onEdit(p)}
-                  aria-label="Edit"
+                  aria-label="Modifier"
                   className="rounded-full p-2 text-muted-foreground hover:bg-secondary hover:text-foreground"
                 >
                   <Pencil className="size-4" />
                 </button>
                 <button
                   onClick={() => onDelete(p.slug)}
-                  aria-label="Delete"
+                  aria-label="Supprimer"
                   className="rounded-full p-2 text-muted-foreground hover:bg-destructive/10 hover:text-destructive"
                 >
                   <Trash2 className="size-4" />
@@ -735,7 +745,7 @@ function AccountSettings({ token }: { token: string }) {
     setError(null)
 
     if (form.newPassword && form.newPassword !== form.confirmPassword) {
-      setError("New passwords do not match.")
+      setError("Les nouveaux mots de passe ne correspondent pas.")
       return
     }
 
@@ -746,14 +756,14 @@ function AccountSettings({ token }: { token: string }) {
       payload.new_password = form.newPassword
     }
     if (Object.keys(payload).length === 0) {
-      setError("Enter a new username or password to save.")
+      setError("Saisissez un nouveau nom d'utilisateur ou mot de passe à enregistrer.")
       return
     }
 
     setSaving(true)
     try {
       const result = await updateAdminAccount(token, payload)
-      setSuccess(`Account updated. Your username is now "${result.username}".`)
+      setSuccess(`Compte mis à jour. Votre nom d'utilisateur est désormais "${result.username}".`)
       setForm({ username: "", currentPassword: "", newPassword: "", confirmPassword: "" })
     } catch (err) {
       const ae = err as ApiError
@@ -763,7 +773,7 @@ function AccountSettings({ token }: { token: string }) {
           .join(" ")
         setError(msgs || ae.message)
       } else {
-        setError(ae?.message || "Could not update account. Please try again.")
+        setError(ae?.message || "Impossible de mettre à jour le compte. Veuillez réessayer.")
       }
     } finally {
       setSaving(false)
@@ -777,17 +787,17 @@ function AccountSettings({ token }: { token: string }) {
           <User className="size-5" />
         </span>
         <div>
-          <h2 className="font-serif text-lg">Account Settings</h2>
-          <p className="text-xs text-muted-foreground">Change your username or password.</p>
+          <h2 className="font-serif text-lg">Paramètres du compte</h2>
+          <p className="text-xs text-muted-foreground">Changez votre nom d'utilisateur ou votre mot de passe.</p>
         </div>
       </div>
 
       <form onSubmit={handleSave} className="space-y-4">
         <label className="block text-sm">
-          <span className="mb-1 block font-medium">New username (optional)</span>
+          <span className="mb-1 block font-medium">Nouveau nom d'utilisateur (facultatif)</span>
           <input
             className="input"
-            placeholder="Leave blank to keep current"
+            placeholder="Laisser vide pour conserver"
             value={form.username}
             onChange={(e) => setForm({ ...form, username: e.target.value })}
             autoComplete="username"
@@ -796,15 +806,15 @@ function AccountSettings({ token }: { token: string }) {
 
         <div className="border-t border-border pt-4">
           <p className="mb-3 flex items-center gap-2 text-sm font-medium">
-            <KeyRound className="size-4 text-muted-foreground" /> Change password
+            <KeyRound className="size-4 text-muted-foreground" /> Changer le mot de passe
           </p>
           <div className="space-y-3">
             <label className="block text-sm">
-              <span className="mb-1 block font-medium">Current password</span>
+              <span className="mb-1 block font-medium">Mot de passe actuel</span>
               <input
                 type="password"
                 className="input"
-                placeholder="Required when setting a new password"
+                placeholder="Requis pour définir un nouveau mot de passe"
                 value={form.currentPassword}
                 onChange={(e) => setForm({ ...form, currentPassword: e.target.value })}
                 autoComplete="current-password"
@@ -812,22 +822,22 @@ function AccountSettings({ token }: { token: string }) {
             </label>
             <div className="grid gap-3 sm:grid-cols-2">
               <label className="block text-sm">
-                <span className="mb-1 block font-medium">New password</span>
+                <span className="mb-1 block font-medium">Nouveau mot de passe</span>
                 <input
                   type="password"
                   className="input"
-                  placeholder="Min. 8 characters"
+                  placeholder="8 caractères min."
                   value={form.newPassword}
                   onChange={(e) => setForm({ ...form, newPassword: e.target.value })}
                   autoComplete="new-password"
                 />
               </label>
               <label className="block text-sm">
-                <span className="mb-1 block font-medium">Confirm new password</span>
+                <span className="mb-1 block font-medium">Confirmer le nouveau mot de passe</span>
                 <input
                   type="password"
                   className="input"
-                  placeholder="Repeat new password"
+                  placeholder="Répéter le nouveau mot de passe"
                   value={form.confirmPassword}
                   onChange={(e) => setForm({ ...form, confirmPassword: e.target.value })}
                   autoComplete="new-password"
@@ -846,7 +856,7 @@ function AccountSettings({ token }: { token: string }) {
             disabled={saving}
             className="rounded-full bg-primary px-5 py-2.5 text-sm font-medium text-primary-foreground disabled:opacity-50"
           >
-            {saving ? "Saving…" : "Save account"}
+            {saving ? "Enregistrement…" : "Enregistrer le compte"}
           </button>
         </div>
       </form>
@@ -889,7 +899,7 @@ function ContactSettings({ token }: { token: string }) {
       setForm(updated)
       setSuccess(true)
     } catch (err) {
-      setError(err instanceof ApiError ? err.message : "Could not save settings. Please try again.")
+      setError(err instanceof ApiError ? err.message : "Impossible d'enregistrer les paramètres. Veuillez réessayer.")
     } finally {
       setSaving(false)
     }
@@ -898,7 +908,7 @@ function ContactSettings({ token }: { token: string }) {
   if (loading) {
     return (
       <div className="rounded-3xl border border-border bg-card p-6 shadow-sm">
-        <p className="text-sm text-muted-foreground">Loading contact settings…</p>
+        <p className="text-sm text-muted-foreground">Chargement des paramètres de contact…</p>
       </div>
     )
   }
@@ -910,9 +920,9 @@ function ContactSettings({ token }: { token: string }) {
           <Settings className="size-5" />
         </span>
         <div>
-          <h2 className="font-serif text-lg">Contact Information</h2>
+          <h2 className="font-serif text-lg">Informations de contact</h2>
           <p className="text-xs text-muted-foreground">
-            Changes appear immediately in the store footer.
+            Les modifications apparaissent immédiatement dans le pied de page de la boutique.
           </p>
         </div>
       </div>
@@ -920,7 +930,7 @@ function ContactSettings({ token }: { token: string }) {
       <form onSubmit={handleSave} className="space-y-4">
         <div className="grid gap-4 sm:grid-cols-2">
           <label className="block text-sm">
-            <span className="mb-1 block font-medium">Phone (digits, e.g. 213555000000)</span>
+            <span className="mb-1 block font-medium">Téléphone (chiffres, ex. 213555000000)</span>
             <input
               className="input"
               value={form.phone}
@@ -929,7 +939,7 @@ function ContactSettings({ token }: { token: string }) {
             />
           </label>
           <label className="block text-sm">
-            <span className="mb-1 block font-medium">Phone display (e.g. +213 555 00 00 00)</span>
+            <span className="mb-1 block font-medium">Affichage téléphone (ex. +213 555 00 00 00)</span>
             <input
               className="input"
               value={form.phone_display}
@@ -951,19 +961,19 @@ function ContactSettings({ token }: { token: string }) {
             />
           </label>
           <label className="block text-sm">
-            <span className="mb-1 block font-medium">Address</span>
+            <span className="mb-1 block font-medium">Adresse</span>
             <input
               className="input"
               value={form.address}
               onChange={(e) => setForm({ ...form, address: e.target.value })}
-              placeholder="City, Country"
+              placeholder="Ville, Pays"
             />
           </label>
         </div>
 
         <div className="grid gap-4 sm:grid-cols-2">
           <label className="block text-sm">
-            <span className="mb-1 block font-medium">Instagram URL</span>
+            <span className="mb-1 block font-medium">URL Instagram</span>
             <input
               type="url"
               className="input"
@@ -973,7 +983,7 @@ function ContactSettings({ token }: { token: string }) {
             />
           </label>
           <label className="block text-sm">
-            <span className="mb-1 block font-medium">TikTok URL</span>
+            <span className="mb-1 block font-medium">URL TikTok</span>
             <input
               type="url"
               className="input"
@@ -985,7 +995,7 @@ function ContactSettings({ token }: { token: string }) {
         </div>
 
         {error && <p className="text-sm text-destructive">{error}</p>}
-        {success && <p className="text-sm text-primary">Contact information saved successfully.</p>}
+        {success && <p className="text-sm text-primary">Informations de contact enregistrées avec succès.</p>}
 
         <div className="flex justify-end">
           <button
@@ -993,7 +1003,7 @@ function ContactSettings({ token }: { token: string }) {
             disabled={saving}
             className="rounded-full bg-primary px-5 py-2.5 text-sm font-medium text-primary-foreground disabled:opacity-50"
           >
-            {saving ? "Saving…" : "Save contact info"}
+            {saving ? "Enregistrement…" : "Enregistrer les informations de contact"}
           </button>
         </div>
       </form>
@@ -1036,7 +1046,7 @@ function HomepageImageSettings({ token }: { token: string }) {
     } catch (err) {
       setErrors((e) => ({
         ...e,
-        [field]: err instanceof ApiError ? err.message : "Upload failed. Please try again.",
+        [field]: err instanceof ApiError ? err.message : "Échec du téléchargement. Veuillez réessayer.",
       }))
     } finally {
       setUploading(null)
@@ -1046,14 +1056,14 @@ function HomepageImageSettings({ token }: { token: string }) {
   if (loading) {
     return (
       <div className="rounded-3xl border border-border bg-card p-6 shadow-sm">
-        <p className="text-sm text-muted-foreground">Loading images…</p>
+        <p className="text-sm text-muted-foreground">Chargement des images…</p>
       </div>
     )
   }
 
   const items: { field: "hero_image" | "about_image"; label: string; hint: string }[] = [
-    { field: "hero_image", label: "Homepage hero", hint: "Shown at the top of the homepage." },
-    { field: "about_image", label: "About page", hint: "Shown on the About page." },
+    { field: "hero_image", label: "Bannière d'accueil", hint: "Affichée en haut de la page d'accueil." },
+    { field: "about_image", label: "Page À propos", hint: "Affichée sur la page À propos." },
   ]
 
   return (
@@ -1063,9 +1073,9 @@ function HomepageImageSettings({ token }: { token: string }) {
           <ImageIcon className="size-5" />
         </span>
         <div>
-          <h2 className="font-serif text-lg">Homepage Images</h2>
+          <h2 className="font-serif text-lg">Images de la page d'accueil</h2>
           <p className="text-xs text-muted-foreground">
-            Upload or replace the images used on the homepage hero and the About page.
+            Téléchargez ou remplacez les images utilisées sur la bannière d'accueil et la page À propos.
           </p>
         </div>
       </div>
@@ -1091,12 +1101,12 @@ function HomepageImageSettings({ token }: { token: string }) {
                 />
                 {isUploading && (
                   <div className="absolute inset-0 flex items-center justify-center bg-background/60">
-                    <span className="text-xs text-muted-foreground">Uploading…</span>
+                    <span className="text-xs text-muted-foreground">Téléchargement…</span>
                   </div>
                 )}
               </div>
               <label className="inline-flex w-full cursor-pointer items-center justify-center gap-2 rounded-full border border-border px-3 py-2 text-xs font-medium hover:bg-secondary">
-                <ImageIcon className="size-3.5" /> Change image
+                <ImageIcon className="size-3.5" /> Changer l'image
                 <input
                   type="file"
                   accept="image/*"
@@ -1152,7 +1162,7 @@ function CategoryImageSettings({ token }: { token: string }) {
     } catch (err) {
       setErrors((e) => ({
         ...e,
-        [slug]: err instanceof ApiError ? err.message : "Upload failed. Please try again.",
+        [slug]: err instanceof ApiError ? err.message : "Échec du téléchargement. Veuillez réessayer.",
       }))
     } finally {
       setUploading(null)
@@ -1162,7 +1172,7 @@ function CategoryImageSettings({ token }: { token: string }) {
   if (loading) {
     return (
       <div className="rounded-3xl border border-border bg-card p-6 shadow-sm">
-        <p className="text-sm text-muted-foreground">Loading categories…</p>
+        <p className="text-sm text-muted-foreground">Chargement des catégories…</p>
       </div>
     )
   }
@@ -1174,9 +1184,9 @@ function CategoryImageSettings({ token }: { token: string }) {
           <ImageIcon className="size-5" />
         </span>
         <div>
-          <h2 className="font-serif text-lg">Category Images</h2>
+          <h2 className="font-serif text-lg">Images des catégories</h2>
           <p className="text-xs text-muted-foreground">
-            Upload or replace the image shown for each category on the homepage.
+            Téléchargez ou remplacez l'image affichée pour chaque catégorie sur la page d'accueil.
           </p>
         </div>
       </div>
@@ -1198,12 +1208,12 @@ function CategoryImageSettings({ token }: { token: string }) {
                 />
                 {isUploading && (
                   <div className="absolute inset-0 flex items-center justify-center bg-background/60">
-                    <span className="text-xs text-muted-foreground">Uploading…</span>
+                    <span className="text-xs text-muted-foreground">Téléchargement…</span>
                   </div>
                 )}
               </div>
               <label className="inline-flex w-full cursor-pointer items-center justify-center gap-2 rounded-full border border-border px-3 py-2 text-xs font-medium hover:bg-secondary">
-                <ImageIcon className="size-3.5" /> Change image
+                <ImageIcon className="size-3.5" /> Changer l'image
                 <input
                   type="file"
                   accept="image/*"
@@ -1231,6 +1241,121 @@ function CategoryImageSettings({ token }: { token: string }) {
 // Product editor modal
 // ---------------------------------------------------------------------------
 
+const RING_SIZE_PRESETS = ["12", "13", "14", "15", "16", "17", "18", "19", "20", "21", "22"]
+const STANDARD_SIZE_LABEL = "Taille standard / Ajustable"
+
+function SizeEditor({
+  sizes,
+  onChange,
+}: {
+  sizes: string[]
+  onChange: (sizes: string[]) => void
+}) {
+  const hasStandard = sizes.includes(STANDARD_SIZE_LABEL)
+  const numericSizes = sizes.filter((s) => s !== STANDARD_SIZE_LABEL)
+
+  function toggleValue(value: string) {
+    const exists = sizes.includes(value)
+    onChange(exists ? sizes.filter((s) => s !== value) : [...sizes, value])
+  }
+
+  function addCustom(value: string) {
+    const v = value.trim()
+    if (!v) return
+    if (sizes.includes(v)) return
+    onChange([...sizes, v])
+  }
+
+  return (
+    <div className="rounded-2xl border border-border bg-secondary/40 p-3">
+      <div className="mb-2 flex items-center justify-between">
+        <span className="text-sm font-medium">Tailles de bague</span>
+        <span className="text-xs text-muted-foreground">
+          {sizes.length > 0 ? `${sizes.length} taille${sizes.length !== 1 ? "s" : ""} disponibles` : "Aucune taille"}
+        </span>
+      </div>
+
+      {/* Standard / adjustable preset */}
+      <label className="mb-3 flex cursor-pointer items-center gap-2 text-sm">
+        <input
+          type="checkbox"
+          checked={hasStandard}
+          onChange={() => toggleValue(STANDARD_SIZE_LABEL)}
+          className="accent-primary"
+        />
+        {STANDARD_SIZE_LABEL}
+      </label>
+
+      {/* Numeric size preset chips */}
+      <div className="flex flex-wrap gap-1.5">
+        {RING_SIZE_PRESETS.map((s) => {
+          const active = numericSizes.includes(s)
+          return (
+            <button
+              key={s}
+              type="button"
+              onClick={() => toggleValue(s)}
+              className={cn(
+                "flex size-9 items-center justify-center rounded-full border text-sm transition-colors",
+                active
+                  ? "border-primary bg-primary text-primary-foreground"
+                  : "border-border bg-card hover:border-primary",
+              )}
+            >
+              {s}
+            </button>
+          )
+        })}
+      </div>
+
+      {/* Custom size input */}
+      <form
+        className="mt-3 flex gap-2"
+        onSubmit={(e) => {
+          e.preventDefault()
+          const input = e.currentTarget.elements.namedItem("customSize") as HTMLInputElement
+          addCustom(input.value)
+          input.value = ""
+        }}
+      >
+        <input
+          name="customSize"
+          className="input flex-1"
+          placeholder="Ajouter une taille (ex. 23, 24…)"
+        />
+        <button
+          type="submit"
+          className="rounded-full border border-border px-4 text-sm hover:bg-secondary"
+        >
+          Ajouter
+        </button>
+      </form>
+
+      {/* Selected sizes display */}
+      {sizes.length > 0 && (
+        <div className="mt-3 flex flex-wrap gap-1.5">
+          {sizes.map((s) => (
+            <span
+              key={s}
+              className="inline-flex items-center gap-1 rounded-full bg-primary/10 px-2.5 py-1 text-xs font-medium text-primary"
+            >
+              {s}
+              <button
+                type="button"
+                onClick={() => toggleValue(s)}
+                aria-label={`Retirer la taille ${s}`}
+                className="text-primary/60 hover:text-primary"
+              >
+                ×
+              </button>
+            </span>
+          ))}
+        </div>
+      )}
+    </div>
+  )
+}
+
 interface EditorForm {
   name: string
   description: string
@@ -1242,6 +1367,7 @@ interface EditorForm {
   isNew: boolean
   isBestSeller: boolean
   onPromotion: boolean
+  sizes: string[]
 }
 
 function ProductEditor({
@@ -1255,10 +1381,12 @@ function ProductEditor({
   const isNew = initial === "new"
 
   const [categories, setCategories] = useState<{ id: number; slug: Category; name: string }[]>([])
-  const [imageFile, setImageFile] = useState<File | null>(null)
-  const [imagePreview, setImagePreview] = useState<string | null>(
-    isNew ? null : (initial as Product).images[0] || null,
-  )
+  // Existing images (with backend id) for an edited product.
+  const [existingImages, setExistingImages] = useState<
+    { id: number; image: string; _removed?: boolean }[]
+  >(isNew ? [] : (initial as Product).images.map((src) => ({ id: -1, image: src })))
+  // Newly selected files (with a local preview URL).
+  const [newImages, setNewImages] = useState<{ file: File; preview: string }[]>([])
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
@@ -1268,9 +1396,23 @@ function ProductEditor({
       .catch(() => setCategories([]))
   }, [])
 
+  // For an edited product, load the full image list (with real backend ids) so
+  // the admin can remove individual photos.
+  useEffect(() => {
+    if (isNew) return
+    const token = getAdminToken()
+    if (!token) return
+    fetchProductImages(token, (initial as Product).slug)
+      .then((imgs) => {
+        if (imgs.length) setExistingImages(imgs)
+      })
+      .catch(() => {})
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
+
   const base: EditorForm =
     initial === "new"
-      ? {
+? {
           name: "",
           description: "",
           categorySlug: "rings",
@@ -1281,6 +1423,7 @@ function ProductEditor({
           isNew: true,
           isBestSeller: false,
           onPromotion: false,
+          sizes: [],
         }
       : {
           name: initial.name,
@@ -1293,6 +1436,7 @@ function ProductEditor({
           isNew: initial.isNew,
           isBestSeller: initial.isBestSeller,
           onPromotion: initial.onPromotion,
+          sizes: initial.sizes ?? [],
         }
 
   const [form, setForm] = useState<EditorForm>(base)
@@ -1301,7 +1445,7 @@ function ProductEditor({
     setError(null)
     const category = categories.find((c) => c.slug === form.categorySlug)
     if (!category) {
-      setError("Categories are still loading — please wait a moment and try again.")
+      setError("Les catégories sont encore en cours de chargement — veuillez patienter un instant et réessayer.")
       return
     }
     const payload: ProductWritePayload = {
@@ -1314,69 +1458,130 @@ function ProductEditor({
       in_stock: form.inStock,
       is_new: form.isNew,
       is_best_seller: form.isBestSeller,
-      on_promotion: form.onPromotion,
+on_promotion: form.onPromotion,
+      sizes: form.sizes,
     }
 
     setSaving(true)
     try {
+      const newFiles = newImages.map((n) => n.file)
       if (isNew) {
-        await addProduct(payload, imageFile)
+        await addProduct(payload, newFiles)
       } else {
-        await updateProduct((initial as Product).slug, payload, imageFile)
+        // Delete any existing images the admin chose to remove.
+        const token = getAdminToken()
+        if (token) {
+          for (const img of existingImages) {
+            if (img.id > 0 && img._removed) {
+              await deleteProductImage(token, img.id)
+            }
+          }
+        }
+        await updateProduct((initial as Product).slug, payload, newFiles)
       }
       onClose()
     } catch (err) {
-      setError(err instanceof ApiError ? err.message : "Could not save the product. Please try again.")
+      setError(err instanceof ApiError ? err.message : "Impossible d'enregistrer le produit. Veuillez réessayer.")
     } finally {
       setSaving(false)
     }
   }
 
+  function handleAddFiles(files: FileList | null) {
+    if (!files) return
+    Array.from(files).forEach((file) => {
+      if (!file.type.startsWith("image/")) return
+      const reader = new FileReader()
+      reader.onload = () => {
+        setNewImages((prev) => [...prev, { file, preview: reader.result as string }])
+      }
+      reader.readAsDataURL(file)
+    })
+  }
+
+  function removeNewImage(index: number) {
+    setNewImages((prev) => prev.filter((_, i) => i !== index))
+  }
+
+  function removeExistingImage(id: number) {
+    setExistingImages((prev) =>
+      prev.map((img) => (img.id === id ? { ...img, _removed: true } : img)),
+    )
+  }
+
   return (
     <div className="fixed inset-0 z-50 flex items-end justify-center bg-foreground/50 p-4 sm:items-center" role="dialog" aria-modal="true">
       <div className="max-h-[85vh] w-full max-w-lg overflow-y-auto rounded-3xl bg-card p-6 shadow-xl">
-        <h2 className="font-serif text-xl">{isNew ? "Add product" : "Edit product"}</h2>
+        <h2 className="font-serif text-xl">{isNew ? "Ajouter un produit" : "Modifier le produit"}</h2>
         <div className="mt-4 space-y-3">
           <div className="block text-sm">
-            <span className="mb-1 block font-medium">Product photo</span>
-            <div className="flex items-center gap-4">
-              <div className="relative size-20 shrink-0 overflow-hidden rounded-2xl border border-border bg-secondary">
-                <Image
-                  src={imagePreview || "/placeholder.svg"}
-                  alt={form.name || "Product photo"}
-                  fill
-                  sizes="80px"
-                  className="object-cover"
+            <span className="mb-1 block font-medium">
+              Photos du produit {existingImages.length + newImages.length > 0 ? `(${existingImages.filter((i) => !i._removed).length + newImages.length})` : ""}
+            </span>
+            <div className="flex flex-wrap gap-3">
+              {/* Existing photos */}
+              {existingImages.map((img) =>
+                img._removed ? null : (
+                  <div key={img.id} className="group relative size-20 shrink-0 overflow-hidden rounded-2xl border border-border bg-secondary">
+                    <Image src={img.image || "/placeholder.svg"} alt={form.name || "Photo du produit"} fill sizes="80px" className="object-cover" />
+                    <button
+                      type="button"
+                      onClick={() => removeExistingImage(img.id)}
+                      aria-label="Retirer la photo"
+                      className="absolute right-1 top-1 flex size-6 items-center justify-center rounded-full bg-foreground/70 text-primary-foreground opacity-0 transition-opacity group-hover:opacity-100"
+                    >
+                      <Trash2 className="size-3" />
+                    </button>
+                  </div>
+                ),
+              )}
+              {/* Newly selected photos */}
+              {newImages.map((n, i) => (
+                <div key={`new-${i}`} className="group relative size-20 shrink-0 overflow-hidden rounded-2xl border border-primary bg-secondary">
+                  {n.preview ? (
+                    <Image src={n.preview} alt="Nouvelle photo du produit" fill sizes="80px" className="object-cover" />
+                  ) : (
+                    <div className="flex h-full items-center justify-center text-[0.6rem] text-muted-foreground">
+                      Chargement…
+                    </div>
+                  )}
+                  <button
+                    type="button"
+                    onClick={() => removeNewImage(i)}
+                    aria-label="Retirer la photo"
+                    className="absolute right-1 top-1 flex size-6 items-center justify-center rounded-full bg-foreground/70 text-primary-foreground opacity-0 transition-opacity group-hover:opacity-100"
+                  >
+                    <Trash2 className="size-3" />
+                  </button>
+                </div>
+              ))}
+              {/* Upload button */}
+              <label className="flex size-20 shrink-0 cursor-pointer flex-col items-center justify-center gap-1 rounded-2xl border border-dashed border-border text-muted-foreground transition-colors hover:border-primary hover:text-primary">
+                <Plus className="size-5" />
+                <span className="text-[0.6rem] font-medium">Ajouter une photo</span>
+                <input
+                  type="file"
+                  accept="image/*"
+                  multiple
+                  className="hidden"
+                  onChange={(e) => {
+                    handleAddFiles(e.target.files)
+                    e.target.value = ""
+                  }}
                 />
-              </div>
-              <div className="flex flex-col gap-2">
-                <label className="inline-flex w-fit cursor-pointer items-center gap-2 rounded-full border border-border px-4 py-2 text-xs font-medium hover:bg-secondary">
-                  <Plus className="size-3.5" /> Upload photo
-                  <input
-                    type="file"
-                    accept="image/*"
-                    className="hidden"
-                    onChange={(e) => {
-                      const file = e.target.files?.[0]
-                      if (!file) return
-                      setImageFile(file)
-                      const reader = new FileReader()
-                      reader.onload = () => setImagePreview(reader.result as string)
-                      reader.readAsDataURL(file)
-                    }}
-                  />
-                </label>
-                <p className="text-xs text-muted-foreground">JPG or PNG, square images look best.</p>
-              </div>
+              </label>
             </div>
+            <p className="mt-2 text-xs text-muted-foreground">
+              JPG ou PNG, les images carrées rendent le mieux. La première photo est la principale.
+            </p>
           </div>
           <label className="block text-sm">
-            <span className="mb-1 block font-medium">Name</span>
+            <span className="mb-1 block font-medium">Nom</span>
             <input className="input" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} />
           </label>
           <div className="grid grid-cols-2 gap-3">
             <label className="block text-sm">
-              <span className="mb-1 block font-medium">Price (DZD)</span>
+              <span className="mb-1 block font-medium">Prix (DZD)</span>
               <input
                 type="number"
                 className="input"
@@ -1385,7 +1590,7 @@ function ProductEditor({
               />
             </label>
             <label className="block text-sm">
-              <span className="mb-1 block font-medium">Old price (optional)</span>
+              <span className="mb-1 block font-medium">Ancien prix (facultatif)</span>
               <input
                 type="number"
                 className="input"
@@ -1396,7 +1601,7 @@ function ProductEditor({
           </div>
           <div className="grid grid-cols-2 gap-3">
             <label className="block text-sm">
-              <span className="mb-1 block font-medium">Category</span>
+              <span className="mb-1 block font-medium">Catégorie</span>
               <select
                 className="input"
                 value={form.categorySlug}
@@ -1410,21 +1615,27 @@ function ProductEditor({
               </select>
             </label>
             <label className="block text-sm">
-              <span className="mb-1 block font-medium">Availability</span>
+              <span className="mb-1 block font-medium">Disponibilité</span>
               <select
                 className="input"
                 value={form.inStock ? "in-stock" : "out-of-stock"}
                 onChange={(e) => setForm({ ...form, inStock: e.target.value === "in-stock" })}
               >
-                <option value="in-stock">In stock</option>
-                <option value="out-of-stock">Out of stock</option>
+                <option value="in-stock">En stock</option>
+                <option value="out-of-stock">Rupture de stock</option>
               </select>
             </label>
           </div>
-          <label className="block text-sm">
-            <span className="mb-1 block font-medium">Material</span>
+<label className="block text-sm">
+            <span className="mb-1 block font-medium">Matière</span>
             <input className="input" value={form.material} onChange={(e) => setForm({ ...form, material: e.target.value })} />
           </label>
+          {form.categorySlug === "rings" ? (
+            <SizeEditor
+              sizes={form.sizes}
+              onChange={(sizes) => setForm({ ...form, sizes })}
+            />
+          ) : null}
           <label className="block text-sm">
             <span className="mb-1 block font-medium">Description</span>
             <textarea
@@ -1437,7 +1648,7 @@ function ProductEditor({
           <div className="flex flex-wrap gap-4 text-sm">
             <label className="flex items-center gap-2">
               <input type="checkbox" checked={form.isNew} onChange={(e) => setForm({ ...form, isNew: e.target.checked })} />
-              New
+              Nouveau
             </label>
             <label className="flex items-center gap-2">
               <input
@@ -1445,7 +1656,7 @@ function ProductEditor({
                 checked={form.isBestSeller}
                 onChange={(e) => setForm({ ...form, isBestSeller: e.target.checked })}
               />
-              Best seller
+              Meilleure vente
             </label>
             <label className="flex items-center gap-2">
               <input
@@ -1453,21 +1664,21 @@ function ProductEditor({
                 checked={form.onPromotion}
                 onChange={(e) => setForm({ ...form, onPromotion: e.target.checked })}
               />
-              On promotion
+              En promotion
             </label>
           </div>
         </div>
         {error && <p className="mt-3 text-sm text-destructive">{error}</p>}
         <div className="mt-6 flex justify-end gap-3">
           <button onClick={onClose} className="rounded-full border border-border px-5 py-2.5 text-sm hover:bg-secondary">
-            Cancel
+            Annuler
           </button>
           <button
             onClick={save}
             disabled={!form.name.trim() || saving}
             className="rounded-full bg-primary px-5 py-2.5 text-sm font-medium text-primary-foreground disabled:opacity-50"
           >
-            {saving ? "Saving…" : "Save product"}
+            {saving ? "Enregistrement…" : "Enregistrer le produit"}
           </button>
         </div>
       </div>

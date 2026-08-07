@@ -1,4 +1,4 @@
-export type Category = "rings" | "necklaces" | "bracelets" | "sets"
+export type Category = "rings" | "necklaces" | "bracelets" | "earrings" | "sets"
 
 export type Availability = "in-stock" | "out-of-stock"
 

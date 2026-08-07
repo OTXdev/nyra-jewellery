@@ -39,7 +39,7 @@ export function CollectionsShowcase() {
               {c.description}
             </p>
             <span className="mt-4 inline-flex w-fit items-center gap-1.5 rounded-full bg-primary-foreground/15 px-4 py-2 text-sm font-medium text-primary-foreground backdrop-blur transition-colors group-hover:bg-primary-foreground/25">
-              Explore <ArrowUpRight className="size-4" />
+              Explorer <ArrowUpRight className="size-4" />
             </span>
           </div>
         </Link>

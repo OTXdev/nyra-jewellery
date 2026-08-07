@@ -5,8 +5,8 @@ import { ContactForm } from "@/components/contact/contact-form"
 import { BRAND } from "@/lib/data"
 
 export const metadata: Metadata = {
-  title: "Contact Us",
-  description: "Get in touch with Nyra Jewellery. Reach us by WhatsApp, phone or email.",
+  title: "Contactez-nous",
+  description: "Contactez Nyra Jewellery. Rejoignez-nous par WhatsApp, téléphone ou email.",
 }
 
 export default function ContactPage() {
@@ -14,9 +14,9 @@ export default function ContactPage() {
   return (
     <div>
       <PageHeader
-        eyebrow="We&apos;re here to help"
-        title="Contact Us"
-        description="Questions about a piece, an order or delivery? Reach out — we&apos;d love to hear from you."
+        eyebrow="Nous sommes là pour vous aider"
+        title="Contactez-nous"
+        description="Une question sur une pièce, une commande ou la livraison ? Écrivez-nous — nous serons ravis de vous répondre."
       />
 
       <section className="mx-auto grid max-w-6xl gap-8 px-4 pb-20 md:grid-cols-[1fr_1.4fr] md:px-6">
@@ -33,7 +33,7 @@ export default function ContactPage() {
             <div>
               <p className="font-medium">WhatsApp</p>
               <p className="text-sm text-muted-foreground">{BRAND.whatsappDisplay}</p>
-              <p className="mt-1 text-xs text-primary">Fastest way to reach us</p>
+              <p className="mt-1 text-xs text-primary">Le moyen le plus rapide de nous joindre</p>
             </div>
           </a>
 
@@ -42,7 +42,7 @@ export default function ContactPage() {
               <Phone className="size-5" />
             </span>
             <div>
-              <p className="font-medium">Phone</p>
+              <p className="font-medium">Téléphone</p>
               <p className="text-sm text-muted-foreground">{BRAND.whatsappDisplay}</p>
             </div>
           </div>
@@ -62,8 +62,8 @@ export default function ContactPage() {
               <MapPin className="size-5" />
             </span>
             <div>
-              <p className="font-medium">Location</p>
-              <p className="text-sm text-muted-foreground">Alger, Algeria — delivery nationwide</p>
+              <p className="font-medium">Localisation</p>
+              <p className="text-sm text-muted-foreground">Alger, Algérie — livraison dans tout le pays</p>
             </div>
           </div>
         </div>

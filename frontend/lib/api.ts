@@ -367,6 +367,20 @@ export async function uploadProductImage(
   return apiFetch("/admin/product-images/", { method: "POST", token, body: form })
 }
 
+/** Delete a product image by its backend id. */
+export async function deleteProductImage(token: string, imageId: number) {
+  return apiFetch(`/admin/product-images/${imageId}/`, { method: "DELETE", token })
+}
+
+/** Fetch a product's images with their backend ids (for admin image management). */
+export async function fetchProductImages(
+  token: string,
+  slug: string,
+): Promise<{ id: number; image: string }[]> {
+  const data = await apiFetch(`/products/${slug}/`, { token })
+  return (data?.images || []).map((img: any) => ({ id: img.id, image: img.image }))
+}
+
 /** Upload or replace the image for a category. */
 export async function updateCategoryImage(token: string, slug: string, imageFile: File) {
   const form = new FormData()

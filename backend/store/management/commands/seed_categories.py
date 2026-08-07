@@ -6,6 +6,7 @@ CATEGORIES = [
     ("Rings", "Rings for every occasion."),
     ("Necklaces", "Necklaces and pendants."),
     ("Bracelets", "Bracelets and bangles."),
+    ("Earrings", "Earrings to elevate any look."),
     ("Sets", "Complete jewelry sets."),
 ]
 

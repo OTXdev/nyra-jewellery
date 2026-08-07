@@ -4,18 +4,18 @@ import { PageHeader } from "@/components/layout/page-header"
 import { ShopBrowser } from "@/components/shop/shop-browser"
 
 export const metadata: Metadata = {
-  title: "Shop All Jewellery",
+  title: "Tous les bijoux",
   description:
-    "Browse the full Nyra Jewellery collection of rings, necklaces, bracelets and sets in modern stainless steel. Filter by category, price and material.",
+    "Parcourez toute la collection Nyra Jewellery : bagues, colliers, bracelets et ensembles en acier inoxydable moderne. Filtrez par catégorie, prix et matière.",
 }
 
 export default function ShopPage() {
   return (
     <div>
       <PageHeader
-        eyebrow="The Collection"
-        title="Shop All Jewellery"
-        description="Discover our curated selection of modern stainless steel jewelry. Filter by category, material and price to find your perfect piece."
+        eyebrow="La Collection"
+        title="Tous les bijoux"
+        description="Découvrez notre sélection de bijoux modernes en acier inoxydable. Filtrez par catégorie, matière et prix pour trouver la pièce parfaite."
       />
       <Suspense fallback={null}>
         <ShopBrowser />

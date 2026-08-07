@@ -11,7 +11,7 @@ export const dynamic = "force-dynamic"
 
 export const metadata: Metadata = {
   title: "Collections",
-  description: "Explore Nyra Jewellery's curated collections.",
+  description: "Explorez les collections sélectionnées de Nyra Jewellery.",
 }
 
 async function getCollections() {
@@ -32,13 +32,13 @@ export default async function CollectionsPage() {
   return (
     <div>
       <PageHeader
-        eyebrow="Curated Edits"
-        title="Our Collections"
-        description="Each collection tells its own story — thoughtfully assembled to accompany your style."
+        eyebrow="Sélections curatées"
+        title="Nos Collections"
+        description="Chaque collection raconte sa propre histoire — soigneusement assemblée pour accompagner votre style."
       />
       <section className="mx-auto max-w-6xl px-4 pb-20 md:px-6">
         {collections.length === 0 ? (
-          <p className="py-16 text-center text-muted-foreground">No collections available right now. Check back soon.</p>
+          <p className="py-16 text-center text-muted-foreground">Aucune collection disponible pour le moment. Revenez bientôt.</p>
         ) : (
           <div className="grid gap-6 md:grid-cols-2">
             {collections.map((c: { id: number; name: string; slug: string; description: string; image: string | null }) => (
@@ -61,7 +61,7 @@ export default async function CollectionsPage() {
                   <h2 className="font-serif text-2xl text-balance">{c.name}</h2>
                   <p className="mt-1 max-w-sm text-sm text-background/85 text-pretty">{c.description}</p>
                   <span className="mt-3 inline-flex items-center gap-1.5 text-sm font-medium text-primary-foreground">
-                    <span className="rounded-full bg-primary px-4 py-1.5">Shop the edit</span>
+                    <span className="rounded-full bg-primary px-4 py-1.5">Découvrir la sélection</span>
                     <ArrowRight className="size-4 transition-transform group-hover:translate-x-1" />
                   </span>
                 </div>

@@ -4,17 +4,17 @@ import { PromotionsBrowser } from "@/components/shop/promotions-browser"
 import { DeliveryOffers } from "@/components/marketing/delivery-banner"
 
 export const metadata: Metadata = {
-  title: "Promotions & Offers",
-  description: "Shop limited-time offers and reduced prices on selected Nyra Jewellery pieces.",
+  title: "Promotions & Offres",
+  description: "Découvrez les offres à durée limitée et les prix réduits sur certaines pièces Nyra Jewellery.",
 }
 
 export default function PromotionsPage() {
   return (
     <div>
       <PageHeader
-        eyebrow="Limited Time"
-        title="Promotions & Offers"
-        description="Selected pieces at exceptional prices. These offers won&apos;t last long."
+        eyebrow="Durée limitée"
+        title="Promotions & Offres"
+        description="Des pièces sélectionnées à des prix exceptionnels. Ces offres ne dureront pas longtemps."
       />
       <div className="mx-auto max-w-6xl px-4 pb-8 md:px-6">
         <DeliveryOffers />

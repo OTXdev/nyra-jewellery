@@ -18,23 +18,23 @@ const poppins = Poppins({
 })
 
 export const metadata: Metadata = {
-  title: 'Nyra Jewellery — Modern Stainless Steel Jewelry',
+  title: 'Nyra Jewellery — Bijoux modernes en acier inoxydable',
   description:
-    'Discover Nyra Jewellery: elegant rings, necklaces, bracelets and jewelry sets in modern stainless steel. Browse the collection, request your order, and let us handle the rest.',
+    'Découvrez Nyra Jewellery : bagues, colliers, bracelets et ensembles élégants en acier inoxydable moderne. Parcourez la collection, commandez, et laissez-nous gérer le reste.',
   generator: 'v0.app',
   keywords: [
     'Nyra Jewellery',
-    'stainless steel jewelry',
-    'rings',
-    'necklaces',
+    'bijoux en acier inoxydable',
+    'bagues',
+    'colliers',
     'bracelets',
-    'jewelry sets',
-    'Algeria jewelry',
+    'ensemble de bijoux',
+    'bijoux Algérie',
   ],
   openGraph: {
-    title: 'Nyra Jewellery — Modern Stainless Steel Jewelry',
+    title: 'Nyra Jewellery — Bijoux modernes en acier inoxydable',
     description:
-      'Elegant rings, necklaces, bracelets and jewelry sets in modern stainless steel. Browse and request your order.',
+      'Bagues, colliers, bracelets et ensembles élégants en acier inoxydable moderne. Parcourez et commandez votre commande.',
     type: 'website',
   },
 }
@@ -50,7 +50,7 @@ export default function RootLayout({
   children: React.ReactNode
 }>) {
   return (
-    <html lang="en" className={`${playfair.variable} ${poppins.variable} bg-background`}>
+    <html lang="fr" className={`${playfair.variable} ${poppins.variable} bg-background`}>
       <body className="font-sans antialiased">
         <StoreProvider>{children}</StoreProvider>
         {process.env.NODE_ENV === 'production' && <Analytics />}
@@ -58,3 +58,4 @@ export default function RootLayout({
     </html>
   )
 }
+

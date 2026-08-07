@@ -43,19 +43,19 @@ export function ProductDetail({ slug }: { slug: string }) {
   }, [slug])
 
   if (product === undefined) {
-    return <div className="mx-auto max-w-6xl px-4 py-24 text-center text-muted-foreground md:px-6">Loading…</div>
+    return <div className="mx-auto max-w-6xl px-4 py-24 text-center text-muted-foreground md:px-6">Chargement…</div>
   }
 
   if (!product) {
     return (
       <div className="mx-auto max-w-6xl px-4 py-24 text-center md:px-6">
-        <h1 className="font-serif text-3xl">Product not found</h1>
-        <p className="mt-3 text-muted-foreground">The piece you are looking for is no longer available.</p>
+        <h1 className="font-serif text-3xl">Produit introuvable</h1>
+        <p className="mt-3 text-muted-foreground">La pièce que vous recherchez n&apos;est plus disponible.</p>
         <Link
           href="/shop"
           className="mt-6 inline-block rounded-full bg-primary px-6 py-3 text-sm font-medium text-primary-foreground"
         >
-          Back to shop
+          Retour à la boutique
         </Link>
       </div>
     )
@@ -69,7 +69,7 @@ export function ProductDetail({ slug }: { slug: string }) {
   function handleAdd() {
     if (!product) return
     if (needsSize && size === undefined) {
-      setError("Please select a ring size.")
+      setError("Veuillez sélectionner une taille de bague.")
       return
     }
     setError(null)
@@ -87,11 +87,11 @@ export function ProductDetail({ slug }: { slug: string }) {
     <div className="mx-auto max-w-6xl px-4 py-8 md:px-6 md:py-12">
       <nav className="mb-6 flex flex-wrap items-center gap-1.5 text-sm text-muted-foreground">
         <Link href="/" className="hover:text-foreground">
-          Home
+          Accueil
         </Link>
         <span>/</span>
         <Link href="/shop" className="hover:text-foreground">
-          Shop
+          Boutique
         </Link>
         <span>/</span>
         <span className="text-foreground">{product.name}</span>
@@ -119,7 +119,7 @@ export function ProductDetail({ slug }: { slug: string }) {
                 <button
                   key={i}
                   onClick={() => setActiveImage(i)}
-                  aria-label={`View image ${i + 1}`}
+                  aria-label={`Voir l'image ${i + 1}`}
                   className={cn(
                     "relative aspect-square w-20 overflow-hidden rounded-2xl border-2 transition-colors",
                     activeImage === i ? "border-primary" : "border-border",
@@ -151,7 +151,7 @@ export function ProductDetail({ slug }: { slug: string }) {
           {/* Ring size */}
           {needsSize ? (
             <div className="mt-6">
-              <span className="mb-2 block text-sm font-medium">Ring size</span>
+              <span className="mb-2 block text-sm font-medium">Taille de bague</span>
               <div className="flex flex-wrap gap-2">
                 {product.sizes!.map((s) => (
                   <button
@@ -179,7 +179,7 @@ export function ProductDetail({ slug }: { slug: string }) {
             <div className="flex items-center rounded-full border border-border">
               <button
                 onClick={() => setQuantity((q) => Math.max(1, q - 1))}
-                aria-label="Decrease quantity"
+                aria-label="Diminuer la quantité"
                 className="flex size-11 items-center justify-center rounded-l-full transition-colors hover:bg-secondary"
               >
                 <Minus className="size-4" />
@@ -187,7 +187,7 @@ export function ProductDetail({ slug }: { slug: string }) {
               <span className="w-10 text-center text-sm font-medium">{quantity}</span>
               <button
                 onClick={() => setQuantity((q) => q + 1)}
-                aria-label="Increase quantity"
+                aria-label="Augmenter la quantité"
                 className="flex size-11 items-center justify-center rounded-r-full transition-colors hover:bg-secondary"
               >
                 <Plus className="size-4" />
@@ -205,14 +205,14 @@ export function ProductDetail({ slug }: { slug: string }) {
               )}
             >
               {outOfStock ? (
-                "Out of stock"
+                "Rupture de stock"
               ) : added ? (
                 <>
-                  <Check className="size-4" /> Added to cart
+                  <Check className="size-4" /> Ajouté au panier
                 </>
               ) : (
                 <>
-                  <ShoppingBag className="size-4" /> Add to cart
+                  <ShoppingBag className="size-4" /> Ajouter au panier
                 </>
               )}
             </button>
@@ -228,33 +228,33 @@ export function ProductDetail({ slug }: { slug: string }) {
             disabled={outOfStock}
             className="mt-3 inline-flex w-full items-center justify-center gap-2 rounded-full border border-primary px-6 py-3 text-sm font-medium text-primary transition-colors hover:bg-primary hover:text-primary-foreground disabled:cursor-not-allowed disabled:border-muted disabled:text-muted-foreground disabled:hover:bg-transparent"
           >
-            <Heart className="size-4" /> Buy it now
+            <Heart className="size-4" /> Acheter maintenant
           </button>
 
           {/* Delivery note */}
           <div className="mt-6 flex items-start gap-3 rounded-2xl border border-accent/40 bg-accent/10 p-4">
             <Truck className="mt-0.5 size-5 text-primary" />
             <div className="text-sm">
-              <p className="font-medium text-foreground">Cash on delivery across Algeria</p>
+              <p className="font-medium text-foreground">Paiement à la livraison partout en Algérie</p>
               <p className="text-muted-foreground">
-                Free delivery on orders over {formatDZD(7000)}. A free gift over {formatDZD(10000)}.
+                Livraison gratuite dès {formatDZD(7000)}. Un cadeau offert dès {formatDZD(10000)}.
               </p>
             </div>
           </div>
 
           {/* Details accordion */}
           <div className="mt-6 divide-y divide-border border-y border-border">
-            <Detail label="Category">{CATEGORY_LABELS[product.category]}</Detail>
-            {product.material && <Detail label="Material">{product.material}</Detail>}
-            {product.color && <Detail label="Color">{product.color}</Detail>}
-            {product.care && <Detail label="Care instructions">{product.care}</Detail>}
+            <Detail label="Catégorie">{CATEGORY_LABELS[product.category]}</Detail>
+            {product.material && <Detail label="Matière">{product.material}</Detail>}
+            {product.color && <Detail label="Couleur">{product.color}</Detail>}
+            {product.care && <Detail label="Entretien">{product.care}</Detail>}
           </div>
         </div>
       </div>
 
       {related.length > 0 && (
         <section className="mt-20">
-          <SectionHeading eyebrow="You may also love" title="Complete the look" align="center" />
+          <SectionHeading eyebrow="Vous aimerez aussi" title="Complétez le look" align="center" />
           <div className="mt-8">
             <ProductGrid products={related} />
           </div>

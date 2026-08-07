@@ -18,11 +18,11 @@ export function Logo({
         Nyra
       </span>
       <span className="mt-0.5 text-[0.6rem] font-light uppercase tracking-[0.35em] text-accent-foreground/70">
-        Jewellery
+        Bijoux
       </span>
       {showTagline ? (
         <span className="mt-1 text-xs italic text-muted-foreground">
-          Modern elegance
+          Élégance moderne
         </span>
       ) : null}
     </Link>

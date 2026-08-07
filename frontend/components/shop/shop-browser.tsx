@@ -17,14 +17,15 @@ const CATEGORIES: (Category | 'all')[] = [
   'rings',
   'necklaces',
   'bracelets',
+  'earrings',
   'sets',
 ]
 
 const SORTS: { key: SortKey; label: string }[] = [
-  { key: 'newest', label: 'Newest' },
-  { key: 'popularity', label: 'Most popular' },
-  { key: 'price-asc', label: 'Price: low to high' },
-  { key: 'price-desc', label: 'Price: high to low' },
+  { key: 'newest', label: 'Nouveautés' },
+  { key: 'popularity', label: 'Les plus populaires' },
+  { key: 'price-asc', label: 'Prix : croissant' },
+  { key: 'price-desc', label: 'Prix : décroissant' },
 ]
 
 function Toggle({
@@ -145,7 +146,7 @@ export function ShopBrowser() {
   if (productsLoading) {
     return (
       <div className="mx-auto max-w-7xl px-4 py-24 text-center text-muted-foreground sm:px-6 lg:px-8">
-        Loading the collection…
+        Chargement de la collection…
       </div>
     )
   }
@@ -162,7 +163,7 @@ export function ShopBrowser() {
     <div className="flex flex-col gap-6">
       <div>
         <h3 className="mb-3 text-sm font-semibold uppercase tracking-wider text-foreground">
-          Category
+          Catégorie
         </h3>
         <div className="flex flex-wrap gap-2">
           {CATEGORIES.map((c) => (
@@ -171,7 +172,7 @@ export function ShopBrowser() {
               active={category === c}
               onClick={() => setCategory(c)}
             >
-              {c === 'all' ? 'All' : CATEGORY_LABELS[c]}
+              {c === 'all' ? 'Tout' : CATEGORY_LABELS[c]}
             </Toggle>
           ))}
         </div>
@@ -179,7 +180,7 @@ export function ShopBrowser() {
 
       <div>
         <h3 className="mb-3 text-sm font-semibold uppercase tracking-wider text-foreground">
-          Max price
+          Prix maximum
         </h3>
         <input
           type="range"
@@ -193,27 +194,27 @@ export function ShopBrowser() {
         <div className="mt-1 flex justify-between text-xs text-muted-foreground">
           <span>{formatDA(priceBounds.min)}</span>
           <span className="font-medium text-foreground">
-            Up to {formatDA(maxPrice)}
+            Jusqu à {formatDA(maxPrice)}
           </span>
         </div>
       </div>
 
       <div>
         <h3 className="mb-3 text-sm font-semibold uppercase tracking-wider text-foreground">
-          Refine
+          Affiner
         </h3>
         <div className="flex flex-wrap gap-2">
           <Toggle active={newOnly} onClick={() => setNewOnly((v) => !v)}>
-            New arrivals
+            Nouveautés
           </Toggle>
           <Toggle active={bestOnly} onClick={() => setBestOnly((v) => !v)}>
-            Best sellers
+            Meilleures ventes
           </Toggle>
           <Toggle active={promoOnly} onClick={() => setPromoOnly((v) => !v)}>
-            On promotion
+            En promotion
           </Toggle>
           <Toggle active={inStockOnly} onClick={() => setInStockOnly((v) => !v)}>
-            In stock
+            En stock
           </Toggle>
         </div>
       </div>
@@ -221,7 +222,7 @@ export function ShopBrowser() {
       {showRingFilters ? (
         <div>
           <h3 className="mb-3 text-sm font-semibold uppercase tracking-wider text-foreground">
-            Ring size
+            Taille de bague
           </h3>
           <div className="flex flex-wrap gap-2">
             {RING_SIZES.map((s) => (
@@ -241,7 +242,7 @@ export function ShopBrowser() {
         onClick={resetAll}
         className="mt-2 self-start text-sm font-medium text-wine underline-offset-4 hover:underline"
       >
-        Reset all filters
+        Réinitialiser tous les filtres
       </button>
     </div>
   )
@@ -255,18 +256,18 @@ export function ShopBrowser() {
           <input
             value={query}
             onChange={(e) => setQuery(e.target.value)}
-            placeholder="Search the collection…"
+            placeholder="Rechercher dans la collection…"
             className="w-full bg-transparent text-sm outline-none placeholder:text-muted-foreground"
           />
           {query ? (
-            <button onClick={() => setQuery('')} aria-label="Clear search">
+            <button onClick={() => setQuery('')} aria-label="Effacer la recherche">
               <X className="size-4 text-muted-foreground" />
             </button>
           ) : null}
         </div>
         <div className="flex items-center gap-3">
           <label className="hidden text-sm text-muted-foreground sm:block">
-            Sort
+            Trier
           </label>
           <select
             value={sort}
@@ -283,7 +284,7 @@ export function ShopBrowser() {
             onClick={() => setFiltersOpen(true)}
             className="inline-flex items-center gap-2 rounded-full border border-border bg-card px-4 py-2.5 text-sm lg:hidden"
           >
-            <SlidersHorizontal className="size-4" /> Filters
+            <SlidersHorizontal className="size-4" /> Filtres
           </button>
         </div>
       </div>
@@ -299,7 +300,7 @@ export function ShopBrowser() {
         {/* Results */}
         <div className="flex-1">
           <p className="mb-5 text-sm text-muted-foreground">
-            {filtered.length} {filtered.length === 1 ? 'piece' : 'pieces'} found
+            {filtered.length} {filtered.length === 1 ? 'pièce trouvée' : 'pièces trouvées'}
           </p>
           {filtered.length > 0 ? (
             <ProductGrid
@@ -308,15 +309,15 @@ export function ShopBrowser() {
             />
           ) : (
             <div className="rounded-3xl border border-dashed border-border bg-card p-16 text-center">
-              <p className="font-serif text-xl text-primary">No pieces found</p>
+              <p className="font-serif text-xl text-primary">Aucune pièce trouvée</p>
               <p className="mt-2 text-sm text-muted-foreground">
-                Try adjusting your filters or search.
+                Essayez d ajuster vos filtres ou votre recherche.
               </p>
               <button
                 onClick={resetAll}
                 className="mt-5 rounded-full bg-primary px-6 py-2.5 text-sm font-medium text-primary-foreground"
               >
-                Reset filters
+                Réinitialiser les filtres
               </button>
             </div>
           )}
@@ -344,10 +345,10 @@ export function ShopBrowser() {
           )}
         >
           <div className="mb-6 flex items-center justify-between">
-            <h2 className="font-serif text-xl text-primary">Filters</h2>
+            <h2 className="font-serif text-xl text-primary">Filtres</h2>
             <button
               onClick={() => setFiltersOpen(false)}
-              aria-label="Close filters"
+              aria-label="Fermer les filtres"
               className="rounded-full p-1.5 hover:bg-secondary"
             >
               <X className="size-6" />
@@ -358,7 +359,7 @@ export function ShopBrowser() {
             onClick={() => setFiltersOpen(false)}
             className="mt-8 rounded-full bg-primary py-3 text-sm font-medium text-primary-foreground"
           >
-            Show {filtered.length} results
+            Afficher {filtered.length} résultats
           </button>
         </div>
       </div>

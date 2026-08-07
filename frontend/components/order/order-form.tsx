@@ -41,18 +41,18 @@ export function OrderForm() {
   const deliveryFee = delivery.freeDelivery ? 0 : chosenRawFee
   const estimatedTotal = subtotal + deliveryFee
 
-  if (!hydrated) return <div className="py-24 text-center text-muted-foreground">Loading…</div>
+  if (!hydrated) return <div className="py-24 text-center text-muted-foreground">Chargement…</div>
 
   if (cart.length === 0) {
     return (
       <div className="mx-auto max-w-md px-4 py-24 text-center">
-        <h2 className="font-serif text-2xl">Your cart is empty</h2>
-        <p className="mt-2 text-muted-foreground">Add a few pieces before placing an order.</p>
+        <h2 className="font-serif text-2xl">Votre panier est vide</h2>
+        <p className="mt-2 text-muted-foreground">Ajoutez quelques pièces avant de passer commande.</p>
         <Link
           href="/shop"
           className="mt-6 inline-block rounded-full bg-primary px-6 py-3 text-sm font-medium text-primary-foreground"
         >
-          Browse jewelry
+          Parcourir les bijoux
         </Link>
       </div>
     )
@@ -60,12 +60,12 @@ export function OrderForm() {
 
   function validate() {
     const e: Record<string, string> = {}
-    if (!form.fullName.trim()) e.fullName = "Please enter your full name."
-    if (!/^[0-9+\s]{8,}$/.test(form.phone.trim())) e.phone = "Please enter a valid phone number."
-    if (!form.wilayaId) e.wilaya = "Please select your wilaya."
-    if (!form.commune.trim()) e.commune = "Please enter your commune."
+    if (!form.fullName.trim()) e.fullName = "Veuillez saisir votre nom complet."
+    if (!/^[0-9+\s]{8,}$/.test(form.phone.trim())) e.phone = "Veuillez saisir un numéro de téléphone valide."
+    if (!form.wilayaId) e.wilaya = "Veuillez sélectionner votre wilaya."
+    if (!form.commune.trim()) e.commune = "Veuillez saisir votre commune."
     // Address is required only for home delivery; for stopdesk pickup it's optional.
-    if (deliveryMethod === "home" && !form.address.trim()) e.address = "Please enter your delivery address."
+    if (deliveryMethod === "home" && !form.address.trim()) e.address = "Veuillez saisir votre adresse de livraison."
     setErrors(e)
     return Object.keys(e).length === 0
   }
@@ -98,7 +98,7 @@ export function OrderForm() {
       clearCart()
       router.push(`/order/confirmation?number=${order.orderNumber}`)
     } catch (err) {
-      setSubmitError(err instanceof ApiError ? err.message : "Could not place your order. Please try again.")
+      setSubmitError(err instanceof ApiError ? err.message : "Impossible de passer votre commande. Veuillez réessayer.")
     } finally {
       setSubmitting(false)
     }
@@ -106,21 +106,21 @@ export function OrderForm() {
 
   return (
     <div className="mx-auto max-w-5xl px-4 py-10 md:px-6">
-      <h1 className="font-serif text-3xl md:text-4xl">Complete your order</h1>
-      <p className="mt-2 text-muted-foreground">Cash on delivery — we&apos;ll confirm your order by phone or WhatsApp.</p>
+      <h1 className="font-serif text-3xl md:text-4xl">Finalisez votre commande</h1>
+      <p className="mt-2 text-muted-foreground">Paiement à la livraison — nous confirmons votre commande par téléphone ou WhatsApp.</p>
 
       <form onSubmit={handleSubmit} className="mt-8 grid gap-8 lg:grid-cols-[1.5fr_1fr]">
         <div className="space-y-4 rounded-3xl border border-border bg-card p-6 shadow-sm md:p-8">
           <div className="grid gap-4 sm:grid-cols-2">
-            <Field label="Full name" error={errors.fullName}>
+            <Field label="Nom complet" error={errors.fullName}>
               <input
                 value={form.fullName}
                 onChange={(e) => setForm({ ...form, fullName: e.target.value })}
                 className="input"
-                placeholder="e.g. Amina Bensalah"
+                placeholder="ex. Amina Bensalah"
               />
             </Field>
-            <Field label="Phone number" error={errors.phone}>
+            <Field label="Numéro de téléphone" error={errors.phone}>
               <input
                 value={form.phone}
                 onChange={(e) => setForm({ ...form, phone: e.target.value })}
@@ -132,7 +132,7 @@ export function OrderForm() {
           </div>
 
           <div className="grid gap-4 sm:grid-cols-2">
-            <Field label="Delivery method">
+            <Field label="Mode de livraison">
               <div className="flex gap-3">
                 <label className="inline-flex items-center gap-2">
                   <input
@@ -166,11 +166,11 @@ export function OrderForm() {
                 className="input"
                 disabled={wilayasLoading}
               >
-                <option value="">{wilayasLoading ? "Loading…" : "Select wilaya"}</option>
+                <option value="">{wilayasLoading ? "Chargement…" : "Sélectionner la wilaya"}</option>
                 {wilayas.map((w) => {
                   const stopdesk = w.stopdeskFee ?? w.deliveryFee
                   const fee = delivery.freeDelivery ? 0 : deliveryMethod === "home" ? w.deliveryFee : stopdesk
-                  const label = deliveryMethod === "home" ? `${formatDZD(fee)} delivery` : `${formatDZD(fee)} pickup`
+                  const label = deliveryMethod === "home" ? `livraison ${formatDZD(fee)}` : `retrait ${formatDZD(fee)}`
                   return (
                     <option key={w.id} value={w.id}>
                       {w.name} — {label}
@@ -184,36 +184,36 @@ export function OrderForm() {
                 value={form.commune}
                 onChange={(e) => setForm({ ...form, commune: e.target.value })}
                 className="input"
-                placeholder="Your commune"
+                placeholder="Votre commune"
               />
             </Field>
           </div>
 
           {deliveryMethod === "home" && (
-            <Field label="Delivery address" error={errors.address}>
+            <Field label="Adresse de livraison" error={errors.address}>
               <input
                 value={form.address}
                 onChange={(e) => setForm({ ...form, address: e.target.value })}
                 className="input"
-                placeholder="Street, building, apartment…"
+                placeholder="Rue, immeuble, appartement…"
               />
             </Field>
           )}
 
-          <Field label="Order notes (optional)">
+          <Field label="Notes de commande (facultatif)">
             <textarea
               rows={3}
               value={form.notes}
               onChange={(e) => setForm({ ...form, notes: e.target.value })}
               className="input resize-none"
-              placeholder="Anything we should know?"
+              placeholder="Quelque chose à nous dire ?"
             />
           </Field>
         </div>
 
         {/* Summary */}
         <aside className="h-fit space-y-4 rounded-3xl border border-border bg-card p-6 shadow-sm lg:sticky lg:top-24">
-          <h2 className="font-serif text-xl">Your order</h2>
+          <h2 className="font-serif text-xl">Votre commande</h2>
           <ul className="space-y-3">
             {cart.map((i) => {
               const p = products.find((pr) => pr.id === i.productId)
@@ -231,7 +231,7 @@ export function OrderForm() {
                   </div>
                   <div className="min-w-0 flex-1">
                     <p className="truncate text-sm font-medium">{p.name}</p>
-                    <p className="text-xs text-muted-foreground">Qty {i.quantity}</p>
+                    <p className="text-xs text-muted-foreground">Qté {i.quantity}</p>
                   </div>
                   <span className="text-sm font-medium">{formatDZD(p.price * i.quantity)}</span>
                 </li>
@@ -241,18 +241,18 @@ export function OrderForm() {
 
           <div className="space-y-2 border-t border-border pt-4 text-sm">
             <div className="flex justify-between">
-              <span className="text-muted-foreground">Subtotal</span>
+              <span className="text-muted-foreground">Sous-total</span>
               <span className="font-medium">{formatDZD(subtotal)}</span>
             </div>
             <div className="flex items-center justify-between">
-              <span className="text-muted-foreground">{deliveryMethod === "home" ? "Delivery (À domicile)" : "Pickup (Au bureau)"}</span>
+              <span className="text-muted-foreground">{deliveryMethod === "home" ? "Livraison (À domicile)" : "Retrait (Au bureau)"}</span>
               <span className="font-medium">
                 {delivery.freeDelivery ? (
-                  <span className="text-primary">Free</span>
+                  <span className="text-primary">Gratuite</span>
                 ) : selectedWilaya ? (
                   formatDZD(chosenRawFee)
                 ) : (
-                  "Select a wilaya"
+                  "Sélectionnez une wilaya"
                 )}
               </span>
             </div>
@@ -262,12 +262,12 @@ export function OrderForm() {
             <div className="space-y-2 rounded-2xl bg-accent/10 p-3 text-sm">
               {delivery.freeDelivery && (
                 <p className="flex items-center gap-2 text-foreground">
-                  <Truck className="size-4 text-primary" /> Free delivery unlocked
+                  <Truck className="size-4 text-primary" /> Livraison gratuite débloquée
                 </p>
               )}
               {delivery.freeGift && (
                 <p className="flex items-center gap-2 text-foreground">
-                  <Gift className="size-4 text-primary" /> Free mini gift included
+                  <Gift className="size-4 text-primary" /> Petit cadeau offert
                 </p>
               )}
             </div>
@@ -285,10 +285,10 @@ export function OrderForm() {
             disabled={submitting}
             className="inline-flex w-full items-center justify-center gap-2 rounded-full bg-primary px-6 py-3 text-sm font-medium text-primary-foreground transition-opacity hover:opacity-90 disabled:opacity-60"
           >
-            <ShoppingBag className="size-4" /> {submitting ? "Placing order…" : "Place order"}
+            <ShoppingBag className="size-4" /> {submitting ? "Passage de la commande…" : "Passer la commande"}
           </button>
           <p className="text-center text-xs text-muted-foreground">
-            You pay {formatDZD(estimatedTotal)} in cash when your order arrives.
+            Vous payez {formatDZD(estimatedTotal)} en espèces à la réception de votre commande.
           </p>
         </aside>
       </form>

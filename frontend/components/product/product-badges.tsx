@@ -14,12 +14,12 @@ export function ProductBadges({
     <div className={cn('flex flex-wrap gap-1.5', className)}>
       {product.isNew ? (
         <span className="rounded-full bg-primary px-2.5 py-1 text-[0.65rem] font-semibold uppercase tracking-wide text-primary-foreground">
-          New
+          Nouveau
         </span>
       ) : null}
       {product.isBestSeller ? (
         <span className="rounded-full bg-accent px-2.5 py-1 text-[0.65rem] font-semibold uppercase tracking-wide text-accent-foreground">
-          Best Seller
+          Meilleure vente
         </span>
       ) : null}
       {discount ? (

@@ -24,7 +24,7 @@ export function PromotionsBrowser() {
   return (
     <section className="mx-auto max-w-6xl px-4 pb-20 md:px-6">
       {onSale.length === 0 ? (
-        <p className="py-16 text-center text-muted-foreground">No promotions available right now. Check back soon.</p>
+        <p className="py-16 text-center text-muted-foreground">Aucune promotion disponible pour le moment. Revenez bientôt.</p>
       ) : (
         <ProductGrid products={onSale} />
       )}

@@ -2,15 +2,13 @@
 
 import { useSyncExternalStore } from "react"
 
-export const HERO_FALLBACK = "/images/hero.jpg"
-export const ABOUT_FALLBACK = "/images/about.png"
-
 export interface SiteImages {
   hero: string
   about: string
 }
 
-let state: SiteImages = { hero: HERO_FALLBACK, about: ABOUT_FALLBACK }
+// No bundled fallback images — only the images uploaded by the admin are shown.
+let state: SiteImages = { hero: "", about: "" }
 
 const listeners = new Set<() => void>()
 

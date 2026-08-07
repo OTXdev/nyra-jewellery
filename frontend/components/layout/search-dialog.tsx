@@ -54,7 +54,7 @@ export function SearchDialog({
   return (
     <div className="fixed inset-0 z-[60] flex items-start justify-center px-4 pt-24 sm:pt-28">
       <button
-        aria-label="Close search"
+        aria-label="Fermer la recherche"
         className="absolute inset-0 bg-primary/30 backdrop-blur-sm animate-in fade-in"
         onClick={onClose}
       />
@@ -65,12 +65,12 @@ export function SearchDialog({
             ref={inputRef}
             value={query}
             onChange={(e) => setQuery(e.target.value)}
-            placeholder="Search rings, necklaces, collections…"
+            placeholder="Rechercher bagues, colliers, collections…"
             className="w-full bg-transparent text-base text-foreground outline-none placeholder:text-muted-foreground"
           />
           <button
             onClick={onClose}
-            aria-label="Close"
+            aria-label="Fermer"
             className="rounded-full p-1 text-muted-foreground transition-colors hover:text-foreground"
           >
             <X className="size-5" />
@@ -80,12 +80,12 @@ export function SearchDialog({
         <div className="max-h-[50vh] overflow-y-auto p-2">
           {query.trim() && results.length === 0 ? (
             <p className="px-4 py-8 text-center text-sm text-muted-foreground">
-              No pieces found for “{query}”.
+              Aucune pièce trouvée pour « {query} ».
             </p>
           ) : null}
           {!query.trim() ? (
             <p className="px-4 py-8 text-center text-sm text-muted-foreground">
-              Start typing to explore the collection.
+              Commencez à taper pour explorer la collection.
             </p>
           ) : null}
           <ul>

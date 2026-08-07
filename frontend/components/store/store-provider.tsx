@@ -43,8 +43,8 @@ interface StoreContextValue {
   productsError: string | null
   refreshProducts: () => Promise<void>
   getProduct: (idOrSlug: string | number) => Product | undefined
-  addProduct: (payload: ProductWritePayload, imageFile?: File | null) => Promise<void>
-  updateProduct: (slug: string, payload: Partial<ProductWritePayload>, imageFile?: File | null) => Promise<void>
+  addProduct: (payload: ProductWritePayload, imageFiles?: File[] | null) => Promise<void>
+  updateProduct: (slug: string, payload: Partial<ProductWritePayload>, imageFiles?: File[] | null) => Promise<void>
   deleteProduct: (slug: string) => Promise<void>
   // cart
   cart: CartItem[]
@@ -82,7 +82,7 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
       const prods = await fetchAllProducts(namesBySlug)
       setProducts(prods)
     } catch {
-      setProductsError("We couldn't load the catalog. Please check your connection and try again.")
+      setProductsError("Impossible de charger le catalogue. Vérifiez votre connexion et réessayez.")
     } finally {
       setProductsLoading(false)
     }
@@ -114,13 +114,15 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
   )
 
   const addProduct = useCallback(
-    async (payload: ProductWritePayload, imageFile?: File | null) => {
+    async (payload: ProductWritePayload, imageFiles?: File[] | null) => {
       const token = getAdminToken()
-      if (!token) throw new Error("Admin session expired. Please log in again.")
+      if (!token) throw new Error("Session administrateur expirée. Veuillez vous reconnecter.")
       const created = await apiCreateProduct(token, payload)
-      if (imageFile) {
+      if (imageFiles && imageFiles.length > 0) {
         const { uploadProductImage } = await import("@/lib/api")
-        await uploadProductImage(token, created.id, imageFile, true)
+        for (let i = 0; i < imageFiles.length; i++) {
+          await uploadProductImage(token, created.id, imageFiles[i], i === 0)
+        }
       }
       await loadCatalog()
     },
@@ -128,13 +130,15 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
   )
 
   const updateProduct = useCallback(
-    async (slug: string, payload: Partial<ProductWritePayload>, imageFile?: File | null) => {
+    async (slug: string, payload: Partial<ProductWritePayload>, imageFiles?: File[] | null) => {
       const token = getAdminToken()
-      if (!token) throw new Error("Admin session expired. Please log in again.")
+      if (!token) throw new Error("Session administrateur expirée. Veuillez vous reconnecter.")
       const updated = await apiUpdateProduct(token, slug, payload)
-      if (imageFile) {
+      if (imageFiles && imageFiles.length > 0) {
         const { uploadProductImage } = await import("@/lib/api")
-        await uploadProductImage(token, updated.id, imageFile, true)
+        for (let i = 0; i < imageFiles.length; i++) {
+          await uploadProductImage(token, updated.id, imageFiles[i], false)
+        }
       }
       await loadCatalog()
     },
@@ -144,7 +148,7 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
   const deleteProduct = useCallback(
     async (slug: string) => {
       const token = getAdminToken()
-      if (!token) throw new Error("Admin session expired. Please log in again.")
+      if (!token) throw new Error("Session administrateur expirée. Veuillez vous reconnecter.")
       await apiDeleteProduct(token, slug)
       setProducts((prev) => prev.filter((p) => p.slug !== slug))
     },
@@ -192,9 +196,9 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
     const freeDelivery = subtotal >= FREE_DELIVERY_THRESHOLD
     const freeGift = subtotal >= FREE_GIFT_THRESHOLD
     const next = !freeDelivery
-      ? { threshold: FREE_DELIVERY_THRESHOLD, label: "Free Delivery" }
+      ? { threshold: FREE_DELIVERY_THRESHOLD, label: "Livraison gratuite" }
       : !freeGift
-        ? { threshold: FREE_GIFT_THRESHOLD, label: "Free Delivery + Free Mini Gift" }
+        ? { threshold: FREE_GIFT_THRESHOLD, label: "Livraison gratuite + Petit cadeau offert" }
         : null
     return {
       freeDelivery,
@@ -231,6 +235,6 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
 
 export function useStore() {
   const ctx = useContext(StoreContext)
-  if (!ctx) throw new Error("useStore must be used within StoreProvider")
+  if (!ctx) throw new Error("useStore doit être utilisé dans StoreProvider")
   return ctx
 }

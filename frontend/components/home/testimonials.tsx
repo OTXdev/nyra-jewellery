@@ -4,17 +4,17 @@ const TESTIMONIALS = [
   {
     name: 'Amira B.',
     location: 'Alger',
-    text: 'The emerald ring is even more beautiful in person. Ordering was so simple and the team confirmed everything on WhatsApp within minutes.',
+    text: 'La bague émeraude est encore plus belle en vrai. Commander était très simple et l’équipe a tout confirmé sur WhatsApp en quelques minutes.',
   },
   {
     name: 'Lina K.',
     location: 'Oran',
-    text: 'I bought the bridal set for my wedding and received so many compliments. The quality feels truly luxurious.',
+    text: 'J’ai acheté l’ensemble de mariée pour mon mariage et j’ai reçu énormément de compliments. La qualité est vraiment luxueuse.',
   },
   {
     name: 'Sara M.',
     location: 'Constantine',
-    text: 'Fast delivery and gorgeous packaging. The pearl necklace has become my everyday favourite.',
+    text: 'Livraison rapide et emballage magnifique. Le collier de perles est devenu mon favori du quotidien.',
   },
 ]
 

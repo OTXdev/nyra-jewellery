@@ -10,9 +10,9 @@ export function DeliveryOffers({ className }: { className?: string }) {
           <Truck className="size-6" />
         </span>
         <div>
-          <p className="font-medium text-foreground">Free Delivery</p>
+          <p className="font-medium text-foreground">Livraison gratuite</p>
           <p className="text-sm text-muted-foreground">
-            On every order of {formatDA(7000)} or more.
+            Pour toute commande de {formatDA(7000)} ou plus.
           </p>
         </div>
       </div>
@@ -21,9 +21,9 @@ export function DeliveryOffers({ className }: { className?: string }) {
           <Gift className="size-6" />
         </span>
         <div>
-          <p className="font-medium text-foreground">Free Mini Gift</p>
+          <p className="font-medium text-foreground">Petit cadeau offert</p>
           <p className="text-sm text-muted-foreground">
-            Plus free delivery on orders of {formatDA(10000)}+.
+            Et livraison gratuite pour les commandes de {formatDA(10000)}+.
           </p>
         </div>
       </div>
@@ -52,18 +52,18 @@ export function DeliveryProgress({
       {freeGift ? (
         <p className="flex items-center gap-2 text-sm font-medium text-foreground">
           <Gift className="size-4 text-wine" />
-          You&apos;ve unlocked free delivery and a free mini gift.
+          Vous avez débloqué la livraison gratuite et un petit cadeau.
         </p>
       ) : freeDelivery ? (
         <p className="flex items-center gap-2 text-sm font-medium text-foreground">
           <Truck className="size-4 text-primary" />
-          Free delivery unlocked. Add {formatDA(remaining)} more for a free
-          gift.
+          Livraison gratuite débloquée. Ajoutez {formatDA(remaining)} de plus
+          pour un cadeau.
         </p>
       ) : (
         <p className="flex items-center gap-2 text-sm font-medium text-foreground">
           <Truck className="size-4 text-muted-foreground" />
-          Add {formatDA(remaining)} more to unlock {nextLabel}.
+          Ajoutez {formatDA(remaining)} de plus pour débloquer {nextLabel}.
         </p>
       )}
       <div className="mt-3 h-2 w-full overflow-hidden rounded-full bg-muted">

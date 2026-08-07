@@ -1,10 +1,11 @@
 import type { Product } from "./types"
 
 export const CATEGORY_LABELS: Record<Product["category"], string> = {
-  rings: "Rings",
-  necklaces: "Necklaces",
+  rings: "Bagues",
+  necklaces: "Colliers",
   bracelets: "Bracelets",
-  sets: "Jewelry Sets",
+  earrings: "Boucles d'oreilles",
+  sets: "Ensembles",
 }
 
 // Ring sizes shown as quick-filter chips on the shop page. Backend sizes are
@@ -19,3 +20,5 @@ export const BRAND = {
   instagram: "https://instagram.com",
   tiktok: "https://tiktok.com",
 }
+
+export const BRAND_TAGLINE = "Bijoux"

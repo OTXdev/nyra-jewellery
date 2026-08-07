@@ -18,7 +18,7 @@ export function PageHeader({
         {breadcrumb ? (
           <nav className="mb-3 flex items-center gap-1.5 text-xs text-muted-foreground">
             <Link href="/" className="transition-colors hover:text-primary">
-              Home
+              Accueil
             </Link>
             {breadcrumb.map((b) => (
               <span key={b.label} className="flex items-center gap-1.5">

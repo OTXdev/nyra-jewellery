@@ -16,9 +16,9 @@ export function ContactForm() {
         <div className="mx-auto flex size-12 items-center justify-center rounded-full bg-primary text-primary-foreground">
           <Check className="size-6" />
         </div>
-        <h3 className="mt-4 font-serif text-xl">Message sent</h3>
+        <h3 className="mt-4 font-serif text-xl">Message envoyé</h3>
         <p className="mt-2 text-sm text-muted-foreground">
-          Thank you for reaching out. We&apos;ll reply as soon as possible.
+          Merci de nous avoir contactés. Nous vous répondrons dès que possible.
         </p>
       </div>
     )
@@ -33,12 +33,12 @@ export function ContactForm() {
         name: form.name,
         email: form.email,
         phone: form.phone || undefined,
-        subject: form.subject || "Website contact form",
+        subject: form.subject || "Formulaire de contact du site",
         message: form.message,
       })
       setSent(true)
     } catch (err) {
-      setError(err instanceof ApiError ? err.message : "Something went wrong. Please try again.")
+      setError(err instanceof ApiError ? err.message : "Une erreur est survenue. Veuillez réessayer.")
     } finally {
       setSubmitting(false)
     }
@@ -50,7 +50,7 @@ export function ContactForm() {
       className="space-y-4 rounded-3xl border border-border bg-card p-6 shadow-sm md:p-8"
     >
       <div className="grid gap-4 sm:grid-cols-2">
-        <Field label="Full name">
+        <Field label="Nom complet">
           <input
             required
             value={form.name}
@@ -69,14 +69,14 @@ export function ContactForm() {
         </Field>
       </div>
       <div className="grid gap-4 sm:grid-cols-2">
-        <Field label="Phone (optional)">
+        <Field label="Téléphone (facultatif)">
           <input
             value={form.phone}
             onChange={(e) => setForm({ ...form, phone: e.target.value })}
             className="w-full rounded-xl border border-border bg-background px-4 py-2.5 text-sm outline-none focus:border-primary"
           />
         </Field>
-        <Field label="Subject">
+        <Field label="Sujet">
           <input
             required
             value={form.subject}
@@ -100,7 +100,7 @@ export function ContactForm() {
         disabled={submitting}
         className="inline-flex items-center gap-2 rounded-full bg-primary px-6 py-3 text-sm font-medium text-primary-foreground transition-opacity hover:opacity-90 disabled:opacity-60"
       >
-        <Send className="size-4" /> {submitting ? "Sending…" : "Send message"}
+        <Send className="size-4" /> {submitting ? "Envoi…" : "Envoyer le message"}
       </button>
     </form>
   )
