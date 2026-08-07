@@ -15,9 +15,9 @@ function ViewAll({ href }: { href: string }) {
   return (
     <Link
       href={href}
-      className="group inline-flex items-center gap-1.5 text-sm font-medium text-primary transition-colors hover:text-accent-foreground"
+className="group inline-flex items-center gap-1.5 text-sm font-medium text-primary transition-colors hover:text-accent-foreground"
     >
-      View all
+      Voir tout
       <ArrowRight className="size-4 transition-transform group-hover:translate-x-1" />
     </Link>
   )
@@ -53,10 +53,10 @@ export default function HomePage() {
 
       {/* Categories */}
       <section className="mx-auto max-w-7xl px-4 py-16 sm:px-6 lg:px-8">
-        <SectionHeading
-          eyebrow="Shop by category"
-          title="Find your perfect piece"
-          description="From everyday elegance to special occasions, explore our four signature categories."
+<SectionHeading
+          eyebrow="Acheter par catégorie"
+          title="Trouvez votre pièce idéale"
+          description="De l'élégance du quotidien aux grandes occasions, explorez nos quatre catégories signature."
           className="mb-10"
         />
         <Categories />
@@ -65,10 +65,10 @@ export default function HomePage() {
       {/* New arrivals */}
       <section className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
         <div className="mb-8 flex items-end justify-between gap-4">
-          <SectionHeading
+<SectionHeading
             align="left"
-            eyebrow="Just in"
-            title="New arrivals"
+            eyebrow="Nouveautés"
+            title="Arrivages récents"
           />
           <ViewAll href="/shop?filter=new" />
         </div>
@@ -78,10 +78,10 @@ export default function HomePage() {
       {/* Delivery offers */}
       <section className="mx-auto max-w-7xl px-4 py-12 sm:px-6 lg:px-8">
         <div className="rounded-3xl border border-border bg-card p-6 sm:p-8">
-          <SectionHeading
-            eyebrow="Our promise"
-            title="Delivery offers, on us"
-            description="The more you add to your cart, the more you save."
+<SectionHeading
+            eyebrow="Notre promesse"
+            title="Les frais de livraison, c'est pour nous"
+            description="Plus vous ajoutez au panier, plus vous économisez."
             className="mb-8"
           />
           <DeliveryOffers />
@@ -90,10 +90,10 @@ export default function HomePage() {
 
       {/* Featured collections */}
       <section className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
-        <SectionHeading
-          eyebrow="Curated"
-          title="Featured collections"
-          description="Each collection tells its own story, thoughtfully assembled to complement your style."
+<SectionHeading
+          eyebrow="Sélections curatées"
+          title="Collections en vedette"
+          description="Chaque collection raconte sa propre histoire, soigneusement assemblée pour accompagner votre style."
           className="mb-10"
         />
         <CollectionsShowcase />
@@ -102,10 +102,10 @@ export default function HomePage() {
       {/* Best sellers */}
       <section className="mx-auto max-w-7xl px-4 py-12 sm:px-6 lg:px-8">
         <div className="mb-8 flex items-end justify-between gap-4">
-          <SectionHeading
+<SectionHeading
             align="left"
-            eyebrow="Loved by many"
-            title="Best sellers"
+            eyebrow="Adorées par beaucoup"
+            title="Meilleures ventes"
           />
           <ViewAll href="/shop?filter=bestseller" />
         </div>
@@ -117,10 +117,10 @@ export default function HomePage() {
         <section className="bg-wine/5 py-16">
           <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
             <div className="mb-8 flex items-end justify-between gap-4">
-              <SectionHeading
+<SectionHeading
                 align="left"
-                eyebrow="Limited time"
-                title="Current promotions"
+                eyebrow="Durée limitée"
+                title="Promotions actuelles"
               />
               <ViewAll href="/promotions" />
             </div>
@@ -132,10 +132,10 @@ export default function HomePage() {
       {/* Jewelry sets */}
       <section className="mx-auto max-w-7xl px-4 py-16 sm:px-6 lg:px-8">
         <div className="mb-8 flex items-end justify-between gap-4">
-          <SectionHeading
+<SectionHeading
             align="left"
-            eyebrow="Complete the look"
-            title="Jewelry sets"
+            eyebrow="Complétez le look"
+            title="Ensembles de bijoux"
           />
           <ViewAll href="/shop?category=sets" />
         </div>

@@ -24,7 +24,7 @@ async function getProduct(slug: string) {
 export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
   const { slug } = await params
   const product = await getProduct(slug)
-  if (!product) return { title: "Product" }
+if (!product) return { title: "Produit" }
   return {
     title: product.name,
     description: product.description,
