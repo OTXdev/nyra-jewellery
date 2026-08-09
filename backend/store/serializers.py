@@ -14,6 +14,7 @@ from .models import (
     SiteSettings,
     Wilaya,
 )
+from .validators import validate_phone
 
 User = get_user_model()
 
@@ -176,7 +177,7 @@ class OrderItemInputSerializer(serializers.Serializer):
     """What the storefront actually sends when creating an order."""
 
     product_id = serializers.IntegerField()
-    quantity = serializers.IntegerField(min_value=1)
+    quantity = serializers.IntegerField(min_value=1, max_value=20)
     size = serializers.CharField(required=False, allow_blank=True, default="")
 
 
@@ -184,6 +185,7 @@ class OrderSerializer(serializers.ModelSerializer):
     """Read serializer for admin order list/detail."""
 
     items = OrderItemSerializer(many=True, read_only=True)
+    is_gift_eligible = serializers.SerializerMethodField()
 
     class Meta:
         model = Order
@@ -195,18 +197,22 @@ class OrderSerializer(serializers.ModelSerializer):
             "wilaya",
             "commune",
             "address",
-                "delivery_method",
-                "notes",
-                "status",
-"subtotal",
-                "delivery_fee",
-"total",
-                "payment_method",
-                "items",
-                "created_at",
-                "updated_at",
-            ]
+            "delivery_method",
+            "notes",
+            "status",
+            "subtotal",
+            "delivery_fee",
+            "total",
+            "payment_method",
+            "items",
+            "is_gift_eligible",
+            "created_at",
+            "updated_at",
+        ]
         read_only_fields = [f for f in fields if f != "status"]
+
+    def get_is_gift_eligible(self, obj):
+        return obj.subtotal >= FREE_GIFT_THRESHOLD
 
 
 class OrderStatusUpdateSerializer(serializers.ModelSerializer):
@@ -215,21 +221,14 @@ class OrderStatusUpdateSerializer(serializers.ModelSerializer):
         fields = ["status"]
 
 
-# Free-delivery threshold (must match frontend FREE_DELIVERY_THRESHOLD constant).
 FREE_DELIVERY_THRESHOLD = 7000
+FREE_GIFT_THRESHOLD = 10000
 
 
 class OrderCreateSerializer(serializers.Serializer):
-    """
-    Public-facing order creation serializer. Prices/totals are always
-    recomputed server-side from the database — client-sent amounts are
-    never trusted.
-
-    Free delivery is applied automatically when subtotal >= FREE_DELIVERY_THRESHOLD.
-    """
 
     customer_name = serializers.CharField(max_length=150)
-    phone = serializers.CharField(max_length=30)
+    phone = serializers.CharField(max_length=30, validators=[validate_phone])
     wilaya_id = serializers.IntegerField()
     commune = serializers.CharField(max_length=150)
     # Address is required for home delivery but optional for stopdesk pickup.
@@ -269,9 +268,34 @@ class OrderCreateSerializer(serializers.Serializer):
                 {"items": f"Out of stock: {', '.join(out_of_stock)}"}
             )
 
-        # Ensure wilaya exists (validate_wilaya_id already checks id existence)
+       
+        item_errors = {}
+        for index, item in enumerate(attrs["items"]):
+            product = products_by_id[item["product_id"]]
+            allowed_sizes = product.sizes
+            if not allowed_sizes:
+                # Standard/adjustable/non-sized product — no size required.
+                continue
+
+            submitted_size = item.get("size", "") or ""
+            if not submitted_size.strip():
+                item_errors[index] = {
+                    "size": "Size is required for this product."
+                }
+                continue
+
+            if submitted_size not in allowed_sizes:
+                item_errors[index] = {
+                    "size": (
+                        "Selected size is not available for this product. "
+                        f"Allowed sizes: {', '.join(str(s) for s in allowed_sizes)}"
+                    )
+                }
+
+        if item_errors:
+            raise serializers.ValidationError({"items": item_errors})
+
         attrs["_products_by_id"] = products_by_id
-        # Validate address presence when delivery_method is home
         delivery_method = attrs.get("delivery_method", "home")
         addr = attrs.get("address", "") or ""
         if delivery_method == "home" and not addr.strip():
@@ -302,16 +326,13 @@ class OrderCreateSerializer(serializers.Serializer):
                 }
             )
 
-        # Determine which fee to use depending on delivery method.
         delivery_method = validated_data.get("delivery_method", "home")
-        # Apply free-delivery rule: if subtotal >= threshold, fee becomes 0 for both methods.
         if subtotal >= FREE_DELIVERY_THRESHOLD:
             delivery_fee = 0
         else:
             if delivery_method == "home":
                 delivery_fee = wilaya.delivery_fee
             else:
-                # Use stopdesk_fee when available, otherwise fall back to delivery_fee.
                 delivery_fee = wilaya.stopdesk_fee if (wilaya.stopdesk_fee is not None) else wilaya.delivery_fee
         total = subtotal + delivery_fee
 

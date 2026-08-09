@@ -7,6 +7,8 @@ import { useStore } from "@/components/store/store-provider"
 import { DeliveryOffers } from "@/components/marketing/delivery-banner"
 import { formatDZD } from "@/lib/format"
 
+const MAX_QUANTITY = 20
+
 export function CartView() {
   const { cart, products, updateQuantity, removeFromCart, subtotal, hydrated } = useStore()
 
@@ -79,22 +81,28 @@ export function CartView() {
                     </button>
                   </div>
                   <div className="mt-auto flex items-center justify-between">
-                    <div className="flex items-center rounded-full border border-border">
-                      <button
-                        onClick={() => updateQuantity(item.productId, item.quantity - 1, item.size)}
-                        aria-label="Diminuer la quantité"
-                        className="flex size-9 items-center justify-center rounded-l-full transition-colors hover:bg-secondary"
-                      >
-                        <Minus className="size-3.5" />
-                      </button>
-                      <span className="w-9 text-center text-sm">{item.quantity}</span>
-                      <button
-                        onClick={() => updateQuantity(item.productId, item.quantity + 1, item.size)}
-                        aria-label="Augmenter la quantité"
-                        className="flex size-9 items-center justify-center rounded-r-full transition-colors hover:bg-secondary"
-                      >
-                        <Plus className="size-3.5" />
-                      </button>
+                    <div className="flex flex-col items-end gap-1">
+                      <div className="flex items-center rounded-full border border-border">
+                        <button
+                          onClick={() => updateQuantity(item.productId, item.quantity - 1, item.size)}
+                          aria-label="Diminuer la quantité"
+                          className="flex size-9 items-center justify-center rounded-l-full transition-colors hover:bg-secondary"
+                        >
+                          <Minus className="size-3.5" />
+                        </button>
+                        <span className="w-9 text-center text-sm">{item.quantity}</span>
+                        <button
+                          onClick={() => updateQuantity(item.productId, item.quantity + 1, item.size)}
+                          aria-label="Augmenter la quantité"
+                          disabled={item.quantity >= MAX_QUANTITY}
+                          className="flex size-9 items-center justify-center rounded-r-full transition-colors hover:bg-secondary disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:bg-transparent"
+                        >
+                          <Plus className="size-3.5" />
+                        </button>
+                      </div>
+                      {item.quantity >= MAX_QUANTITY && (
+                        <p className="text-xs text-muted-foreground">Quantité maximale : {MAX_QUANTITY}</p>
+                      )}
                     </div>
                     <span className="font-medium text-primary">{formatDZD(product.price * item.quantity)}</span>
                   </div>

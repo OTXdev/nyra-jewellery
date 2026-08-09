@@ -15,6 +15,8 @@ import { formatDZD } from "@/lib/format"
 import type { CartItem, Product } from "@/lib/types"
 import { cn } from "@/lib/utils"
 
+const MAX_QUANTITY = 20
+
 export function ProductDetail({ slug }: { slug: string }) {
   const router = useRouter()
   const { addToCart, collections } = useStore()
@@ -176,22 +178,28 @@ export function ProductDetail({ slug }: { slug: string }) {
 
           {/* Quantity + Add */}
           <div className="mt-6 flex flex-wrap items-center gap-4">
-            <div className="flex items-center rounded-full border border-border">
-              <button
-                onClick={() => setQuantity((q) => Math.max(1, q - 1))}
-                aria-label="Diminuer la quantité"
-                className="flex size-11 items-center justify-center rounded-l-full transition-colors hover:bg-secondary"
-              >
-                <Minus className="size-4" />
-              </button>
-              <span className="w-10 text-center text-sm font-medium">{quantity}</span>
-              <button
-                onClick={() => setQuantity((q) => q + 1)}
-                aria-label="Augmenter la quantité"
-                className="flex size-11 items-center justify-center rounded-r-full transition-colors hover:bg-secondary"
-              >
-                <Plus className="size-4" />
-              </button>
+            <div className="flex flex-col items-start gap-1">
+              <div className="flex items-center rounded-full border border-border">
+                <button
+                  onClick={() => setQuantity((q) => Math.max(1, q - 1))}
+                  aria-label="Diminuer la quantité"
+                  className="flex size-11 items-center justify-center rounded-l-full transition-colors hover:bg-secondary"
+                >
+                  <Minus className="size-4" />
+                </button>
+                <span className="w-10 text-center text-sm font-medium">{quantity}</span>
+                <button
+                  onClick={() => setQuantity((q) => Math.min(MAX_QUANTITY, q + 1))}
+                  aria-label="Augmenter la quantité"
+                  disabled={quantity >= MAX_QUANTITY}
+                  className="flex size-11 items-center justify-center rounded-r-full transition-colors hover:bg-secondary disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:bg-transparent"
+                >
+                  <Plus className="size-4" />
+                </button>
+              </div>
+              {quantity >= MAX_QUANTITY && (
+                <p className="text-xs text-muted-foreground">Quantité maximale : {MAX_QUANTITY}</p>
+              )}
             </div>
 
             <button

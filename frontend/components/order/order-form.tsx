@@ -10,6 +10,7 @@ import { useStore } from "@/components/store/store-provider"
 import { useWilayas } from "@/lib/wilayas"
 import { createOrder, ApiError } from "@/lib/api"
 import { formatDZD } from "@/lib/format"
+import { validatePhone } from "@/lib/phone"
 
 export function OrderForm() {
   const router = useRouter()
@@ -61,7 +62,8 @@ export function OrderForm() {
   function validate() {
     const e: Record<string, string> = {}
     if (!form.fullName.trim()) e.fullName = "Veuillez saisir votre nom complet."
-    if (!/^[0-9+\s]{8,}$/.test(form.phone.trim())) e.phone = "Veuillez saisir un numéro de téléphone valide."
+    const phoneError = validatePhone(form.phone)
+    if (phoneError) e.phone = phoneError
     if (!form.wilayaId) e.wilaya = "Veuillez sélectionner votre wilaya."
     if (!form.commune.trim()) e.commune = "Veuillez saisir votre commune."
     // Address is required only for home delivery; for stopdesk pickup it's optional.
@@ -122,10 +124,11 @@ export function OrderForm() {
             </Field>
             <Field label="Numéro de téléphone" error={errors.phone}>
               <input
+                type="tel"
                 value={form.phone}
                 onChange={(e) => setForm({ ...form, phone: e.target.value })}
                 className="input"
-                placeholder="0555 00 00 00"
+                placeholder="0550 12 34 56"
                 inputMode="tel"
               />
             </Field>
@@ -267,7 +270,7 @@ export function OrderForm() {
               )}
               {delivery.freeGift && (
                 <p className="flex items-center gap-2 text-foreground">
-                  <Gift className="size-4 text-primary" /> Petit cadeau offert
+                  <Gift className="size-4 text-primary" /> Vous êtes éligible à un cadeau surprise !
                 </p>
               )}
             </div>

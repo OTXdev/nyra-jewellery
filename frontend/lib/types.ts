@@ -72,6 +72,9 @@ export interface Order {
   deliveryFee: number
   total: number
   status: OrderStatus
+  // Server-computed surprise-gift eligibility (stored subtotal >= threshold).
+  // The gift is a store-owner surprise; there is no customer gift selection.
+  isGiftEligible?: boolean
 }
 
 export interface Wilaya {

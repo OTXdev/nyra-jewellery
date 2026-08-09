@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useState } from "react"
 import Link from "next/link"
 import { useSearchParams } from "next/navigation"
-import { Check, MessageCircle } from "lucide-react"
+import { Check, Gift, MessageCircle } from "lucide-react"
 import { BRAND } from "@/lib/data"
 import { formatDZD } from "@/lib/format"
 import type { Order } from "@/lib/types"
@@ -91,13 +91,18 @@ export function OrderConfirmation() {
             <span className="text-muted-foreground">Livraison</span>
             <span>{formatDZD(order.deliveryFee)}</span>
           </div>
-          <div className="flex justify-between pt-1 text-base font-semibold">
+<div className="flex justify-between pt-1 text-base font-semibold">
             <span>Total (paiement à la livraison)</span>
             <span className="text-primary">{formatDZD(order.total)}</span>
           </div>
+          {order.isGiftEligible && (
+            <p className="mt-4 flex items-center gap-2 rounded-2xl bg-wine/10 p-3 text-sm text-foreground">
+              <Gift className="size-4 text-wine" /> Vous êtes éligible à un cadeau surprise 🎁
+            </p>
+          )}
         </div>
 
-        <div className="mt-5 grid gap-1 rounded-2xl bg-secondary/60 p-4 text-sm">
+<div className="mt-5 grid gap-1 rounded-2xl bg-secondary/60 p-4 text-sm">
           <p><span className="text-muted-foreground">Livrer à :</span> {order.fullName}</p>
           <p><span className="text-muted-foreground">Téléphone :</span> {order.phone}</p>
           <p><span className="text-muted-foreground">Adresse :</span> {order.address}, {order.commune}, {order.wilaya}</p>

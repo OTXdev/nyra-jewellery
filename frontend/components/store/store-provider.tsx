@@ -33,6 +33,8 @@ interface DeliveryStatus {
 // comes from the wilaya's real fee (see /api/wilayas/), applied at checkout.
 const FREE_DELIVERY_THRESHOLD = 7000
 const FREE_GIFT_THRESHOLD = 10000
+// Max quantity per line item — must match the backend OrderItemInputSerializer limit.
+const MAX_QUANTITY = 20
 
 interface StoreContextValue {
   hydrated: boolean
@@ -160,7 +162,9 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
       const existing = prev.find((i) => sameLine(i, item.productId, item.size))
       if (existing) {
         return prev.map((i) =>
-          sameLine(i, item.productId, item.size) ? { ...i, quantity: i.quantity + item.quantity } : i,
+          sameLine(i, item.productId, item.size)
+            ? { ...i, quantity: Math.min(MAX_QUANTITY, i.quantity + item.quantity) }
+            : i,
         )
       }
       return [...prev, item]
@@ -174,7 +178,11 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
   const updateQuantity = useCallback((productId: number, quantity: number, size?: string) => {
     setCart((prev) =>
       prev
-        .map((i) => (sameLine(i, productId, size) ? { ...i, quantity: Math.max(1, quantity) } : i))
+        .map((i) =>
+          sameLine(i, productId, size)
+            ? { ...i, quantity: Math.min(MAX_QUANTITY, Math.max(1, quantity)) }
+            : i,
+        )
         .filter((i) => i.quantity > 0),
     )
   }, [])

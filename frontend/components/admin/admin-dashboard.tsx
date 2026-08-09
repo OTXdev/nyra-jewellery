@@ -5,6 +5,7 @@ import Image from "next/image"
 import Link from "next/link"
 import {
   Download,
+  Gift,
   ImageIcon,
   KeyRound,
   LayoutDashboard,
@@ -417,7 +418,7 @@ function exportOrdersToExcel(orders: Order[]) {
     const s = String(v)
     return s.includes(",") || s.includes('"') || s.includes("\n")
       ? `"${s.replace(/"/g, '""')}"`
-      : s
+: s
   }
 
   const headers = [
@@ -433,6 +434,7 @@ function exportOrdersToExcel(orders: Order[]) {
     "Sous-total (DA)",
     "Livraison (DA)",
     "Total (DA)",
+    "Cadeau surprise",
     "Statut",
     "Notes",
   ]
@@ -455,6 +457,7 @@ function exportOrdersToExcel(orders: Order[]) {
       o.subtotal,
       o.deliveryFee,
       o.total,
+      o.isGiftEligible ? "Oui" : "",
       STATUS_LABELS[o.status],
       o.notes ?? "",
     ].map(escape)
@@ -595,10 +598,11 @@ function OrdersTable({
         <div className="space-y-3">
           {/* Header row with select-all */}
           <div className="flex items-center gap-3 rounded-3xl border border-border bg-card px-5 py-2 text-xs font-medium text-muted-foreground">
-            <input
+<input
               type="checkbox"
               checked={allVisibleSelected}
               onChange={toggleAll}
+              aria-label="Sélectionner toutes les commandes"
               className="size-4 accent-primary"
             />
             <span>
@@ -616,10 +620,11 @@ function OrdersTable({
             >
               <div className="flex flex-wrap items-start justify-between gap-3">
                 <div className="flex items-start gap-3">
-                  <input
+<input
                     type="checkbox"
                     checked={selected.has(o.id)}
                     onChange={() => toggle(o.id)}
+                    aria-label={`Sélectionner la commande ${o.orderNumber}`}
                     className="mt-1 size-4 accent-primary"
                   />
                   <div>
@@ -652,7 +657,12 @@ function OrdersTable({
                   <option value="delivered">Livrée</option>
                   <option value="cancelled">Annulée</option>
                 </select>
-                <span className={cn("rounded-full px-3 py-1 text-xs capitalize", STATUS_STYLES[o.status])}>{STATUS_LABELS[o.status]}</span>
+<span className={cn("rounded-full px-3 py-1 text-xs capitalize", STATUS_STYLES[o.status])}>{STATUS_LABELS[o.status]}</span>
+                {o.isGiftEligible && (
+                  <span className="inline-flex items-center gap-1 rounded-full bg-wine/10 px-3 py-1 text-xs font-medium text-wine">
+                    <Gift className="size-3.5" /> Surprise Gift Eligible
+                  </span>
+                )}
               </div>
             </div>
           ))}

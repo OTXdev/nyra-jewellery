@@ -12,11 +12,26 @@ except ImportError:
     pass
 
 
-def env_bool(name, default=False):
+def env_bool(name, default=None):
+    """
+    Strictly parse an environment variable as a boolean.
+
+    Accepts only the intended true/false representations below. Returns
+    `default` when the variable is unset. Raises ValueError for any other
+    value so callers can fail fast instead of silently misinterpreting input.
+    """
     val = os.environ.get(name)
     if val is None:
         return default
-    return val.strip().lower() in ("1", "true", "yes", "on")
+    normalized = val.strip().lower()
+    if normalized in ("1", "true", "yes", "on"):
+        return True
+    if normalized in ("0", "false", "no", "off"):
+        return False
+    raise ValueError(
+        f"Environment variable {name!r} must be one of "
+        "1/true/yes/on or 0/false/no/off."
+    )
 
 
 def env_list(name, default=""):
@@ -24,10 +39,61 @@ def env_list(name, default=""):
     return [item.strip() for item in val.split(",") if item.strip()]
 
 
-# SECURITY
-SECRET_KEY = os.environ.get("DJANGO_SECRET_KEY", "django-insecure-change-me-in-production")
-DEBUG = env_bool("DJANGO_DEBUG", default=True)
+from django.core.exceptions import ImproperlyConfigured 
+
+DJANGO_ENV = os.environ.get("DJANGO_ENV", "development").strip().lower()
+IS_DEVELOPMENT = DJANGO_ENV == "development"
+
+
+if IS_DEVELOPMENT:
+    SECRET_KEY = os.environ.get(
+        "DJANGO_SECRET_KEY",
+        "django-insecure-dev-only-do-not-use-in-production",
+    )
+else:
+    SECRET_KEY = os.environ.get("DJANGO_SECRET_KEY")
+    if not SECRET_KEY:
+        raise ImproperlyConfigured(
+            "DJANGO_SECRET_KEY is required in a non-development environment."
+        )
+
+
+if IS_DEVELOPMENT:
+    DEBUG = env_bool("DJANGO_DEBUG", default=True)
+else:
+    raw_debug = os.environ.get("DJANGO_DEBUG")
+    if raw_debug is None or raw_debug.strip() == "":
+        raise ImproperlyConfigured(
+            "DJANGO_DEBUG is required in a non-development environment."
+        )
+    try:
+        DEBUG = env_bool("DJANGO_DEBUG")
+    except ValueError as exc:
+        raise ImproperlyConfigured(str(exc)) from exc
+
 ALLOWED_HOSTS = env_list("DJANGO_ALLOWED_HOSTS", "localhost,127.0.0.1")
+# HTTPS / production security
+SECURE_SSL_REDIRECT = env_bool(
+    "SECURE_SSL_REDIRECT",
+    default=not IS_DEVELOPMENT,
+)
+
+SESSION_COOKIE_SECURE = env_bool(
+    "SESSION_COOKIE_SECURE",
+    default=not IS_DEVELOPMENT,
+)
+
+CSRF_COOKIE_SECURE = env_bool(
+    "CSRF_COOKIE_SECURE",
+    default=not IS_DEVELOPMENT,
+)
+
+SECURE_HSTS_SECONDS = int(
+    os.environ.get(
+        "SECURE_HSTS_SECONDS",
+        "0" if IS_DEVELOPMENT else "31536000",
+    )
+)
 
 # APPLICATIONS
 INSTALLED_APPS = [
@@ -140,6 +206,15 @@ REST_FRAMEWORK = {
         "rest_framework.parsers.MultiPartParser",
         "rest_framework.parsers.FormParser",
     ),
+   
+    "DEFAULT_THROTTLE_CLASSES": (
+        "rest_framework.throttling.ScopedRateThrottle",
+    ),
+    "DEFAULT_THROTTLE_RATES": {
+        "staff_login": "5/min",
+        "order_create": "10/min",
+        "contact_create": "10/min",
+    },
     "EXCEPTION_HANDLER": "store.exceptions.custom_exception_handler",
 }
 
@@ -159,6 +234,5 @@ CORS_ALLOWED_ORIGINS = env_list(
 )
 CORS_ALLOW_CREDENTIALS = True
 
-# FILE UPLOAD LIMITS (5 MB)
 DATA_UPLOAD_MAX_MEMORY_SIZE = 5 * 1024 * 1024
 FILE_UPLOAD_MAX_MEMORY_SIZE = 5 * 1024 * 1024

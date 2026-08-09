@@ -149,6 +149,7 @@ function mapApiOrder(o: any): Order {
     deliveryFee: o.delivery_fee,
     total: o.total,
     status: o.status,
+    isGiftEligible: o.is_gift_eligible,
   }
 }
 

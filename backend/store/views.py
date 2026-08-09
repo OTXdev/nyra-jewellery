@@ -44,6 +44,7 @@ from .serializers import (
 
 class StaffTokenObtainPairView(TokenObtainPairView):
     serializer_class = StaffTokenObtainPairSerializer
+    throttle_scope = "staff_login"
 
 
 # ---------------------------------------------------------------------------
@@ -145,6 +146,7 @@ class OrderCreateView(generics.CreateAPIView):
     queryset = Order.objects.all()
     serializer_class = OrderCreateSerializer
     permission_classes = [AllowAny]
+    throttle_scope = "order_create"
 
 
 class AdminOrderViewSet(viewsets.ReadOnlyModelViewSet):
@@ -177,13 +179,39 @@ class AdminOrderViewSet(viewsets.ReadOnlyModelViewSet):
 
     @action(detail=False, methods=["post"], url_path="bulk-delete")
     def bulk_delete(self, request):
-        """Admin: POST /api/admin/orders/bulk-delete/ with {"ids": [...]}."""
-        ids = request.data.get("ids", [])
+        """
+        Admin: POST /api/admin/orders/bulk-delete/ with {"ids": [...]}.
+
+        `ids` must be a non-empty list of integers. Non-integer values
+        (strings, floats, booleans, null, dicts, lists, etc.) are rejected
+        with a 400 response so they never reach the ORM.
+        """
+        ids = request.data.get("ids")
+        if ids is None:
+            return Response(
+                {"detail": "A non-empty list of order ids is required."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
         if not isinstance(ids, list) or not ids:
             return Response(
                 {"detail": "No orders selected."},
                 status=status.HTTP_400_BAD_REQUEST,
             )
+
+        invalid = [
+            value
+            for value in ids
+            if not (isinstance(value, int) and not isinstance(value, bool))
+        ]
+        if invalid:
+            return Response(
+                {
+                    "detail": "All ids must be integers.",
+                    "errors": {"ids": invalid},
+                },
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
         deleted, _ = Order.objects.filter(id__in=ids).delete()
         return Response(
             {"detail": f"Deleted {deleted} order(s)."},
@@ -201,6 +229,7 @@ class ContactMessageCreateView(generics.CreateAPIView):
     queryset = ContactMessage.objects.all()
     serializer_class = ContactMessageSerializer
     permission_classes = [AllowAny]
+    throttle_scope = "contact_create"
 
 
 class AdminContactMessageViewSet(viewsets.ReadOnlyModelViewSet):
