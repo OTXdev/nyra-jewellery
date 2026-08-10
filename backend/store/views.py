@@ -19,7 +19,9 @@ from .models import (
     SiteSettings,
     Wilaya,
 )
+
 from .permissions import IsAdminOrReadOnly, IsStaffUser
+
 from .serializers import (
     AdminAccountUpdateSerializer,
     CategorySerializer,
@@ -38,17 +40,10 @@ from .serializers import (
 )
 
 
-# ---------------------------------------------------------------------------
-# Auth
-# ---------------------------------------------------------------------------
-
 class StaffTokenObtainPairView(TokenObtainPairView):
     serializer_class = StaffTokenObtainPairSerializer
+    throttle_scope = "staff_login"
 
-
-# ---------------------------------------------------------------------------
-# Category / Collection — public read, staff write
-# ---------------------------------------------------------------------------
 
 class CategoryViewSet(viewsets.ModelViewSet):
     queryset = Category.objects.all()
@@ -66,16 +61,21 @@ class CollectionViewSet(viewsets.ModelViewSet):
     parser_classes = [MultiPartParser, FormParser, JSONParser]
 
 
-# ---------------------------------------------------------------------------
-# Products — public read (with filters/search), staff write
-# ---------------------------------------------------------------------------
-
 class ProductViewSet(viewsets.ModelViewSet):
-    queryset = Product.objects.select_related("category", "collection").prefetch_related("images")
+    queryset = Product.objects.select_related(
+        "category",
+        "collection",
+    ).prefetch_related("images")
+
     permission_classes = [IsAdminOrReadOnly]
     lookup_field = "slug"
 
-    filter_backends = [DjangoFilterBackend, filters.SearchFilter, filters.OrderingFilter]
+    filter_backends = [
+        DjangoFilterBackend,
+        filters.SearchFilter,
+        filters.OrderingFilter,
+    ]
+
     filterset_fields = {
         "category__slug": ["exact"],
         "collection__slug": ["exact"],
@@ -84,49 +84,59 @@ class ProductViewSet(viewsets.ModelViewSet):
         "is_best_seller": ["exact"],
         "in_stock": ["exact"],
     }
-    search_fields = ["name", "description"]
-    ordering_fields = ["price", "created_at", "rating"]
+
+    search_fields = [
+        "name",
+        "description",
+    ]
+
+    ordering_fields = [
+        "price",
+        "created_at",
+        "rating",
+    ]
+
     ordering = ["-created_at"]
 
     def get_queryset(self):
         qs = super().get_queryset()
+
         category = self.request.query_params.get("category")
         collection = self.request.query_params.get("collection")
+
         if category:
             qs = qs.filter(category__slug=category)
+
         if collection:
             qs = qs.filter(collection__slug=collection)
+
         return qs
 
     def get_serializer_class(self):
         if self.action == "list":
             return ProductListSerializer
+
         if self.action == "retrieve":
             return ProductDetailSerializer
+
         return ProductWriteSerializer
 
 
 class ProductImageViewSet(viewsets.ModelViewSet):
-    """
-    Admin-only endpoint for uploading/deleting product photos.
-    POST multipart/form-data with `product`, `image`, `is_primary`, `order`.
-    """
-
     queryset = ProductImage.objects.all()
     serializer_class = ProductImageSerializer
     permission_classes = [IsStaffUser]
 
     def get_queryset(self):
         qs = super().get_queryset()
+
         product_id = self.request.query_params.get("product")
+
         if product_id:
             qs = qs.filter(product_id=product_id)
+
         return qs
 
-
-# ---------------------------------------------------------------------------
-# Wilayas — public read only
-# ---------------------------------------------------------------------------
 
 class WilayaViewSet(viewsets.ReadOnlyModelViewSet):
     queryset = Wilaya.objects.all()
@@ -135,113 +145,180 @@ class WilayaViewSet(viewsets.ReadOnlyModelViewSet):
     pagination_class = None
 
 
-# ---------------------------------------------------------------------------
-# Orders
-# ---------------------------------------------------------------------------
-
 class OrderCreateView(generics.CreateAPIView):
-    """Public: POST /api/orders/ — place a Cash on Delivery order."""
-
     queryset = Order.objects.all()
     serializer_class = OrderCreateSerializer
     permission_classes = [AllowAny]
+    throttle_scope = "order_create"
 
 
 class AdminOrderViewSet(viewsets.ReadOnlyModelViewSet):
-    """Admin: list/retrieve orders, plus a status-update action."""
-
     queryset = Order.objects.prefetch_related("items").all()
     serializer_class = OrderSerializer
     permission_classes = [IsStaffUser]
-    filter_backends = [DjangoFilterBackend, filters.OrderingFilter]
+
+    filter_backends = [
+        DjangoFilterBackend,
+        filters.OrderingFilter,
+    ]
+
     filterset_fields = ["status"]
-    ordering_fields = ["created_at", "total"]
+
+    ordering_fields = [
+        "created_at",
+        "total",
+    ]
+
     ordering = ["-created_at"]
 
     @action(detail=True, methods=["patch"], url_path="status")
     def update_status(self, request, pk=None):
         order = self.get_object()
-        serializer = OrderStatusUpdateSerializer(order, data=request.data, partial=True)
+
+        serializer = OrderStatusUpdateSerializer(
+            order,
+            data=request.data,
+            partial=True,
+        )
+
         serializer.is_valid(raise_exception=True)
         serializer.save()
-        return Response(OrderSerializer(order).data)
+
+        return Response(
+            OrderSerializer(order).data
+        )
 
     def partial_update(self, request, *args, **kwargs):
-        # Allow PATCH directly on /api/admin/orders/{id}/ too, not just the
-        # /status/ sub-action, for convenience.
         order = self.get_object()
-        serializer = OrderStatusUpdateSerializer(order, data=request.data, partial=True)
+
+        serializer = OrderStatusUpdateSerializer(
+            order,
+            data=request.data,
+            partial=True,
+        )
+
         serializer.is_valid(raise_exception=True)
         serializer.save()
-        return Response(OrderSerializer(order).data)
+
+        return Response(
+            OrderSerializer(order).data
+        )
 
     @action(detail=False, methods=["post"], url_path="bulk-delete")
     def bulk_delete(self, request):
-        """Admin: POST /api/admin/orders/bulk-delete/ with {"ids": [...]}."""
-        ids = request.data.get("ids", [])
-        if not isinstance(ids, list) or not ids:
+        ids = request.data.get("ids")
+
+        if ids is None:
             return Response(
-                {"detail": "No orders selected."},
+                {
+                    "detail": "A non-empty list of order ids is required."
+                },
                 status=status.HTTP_400_BAD_REQUEST,
             )
-        deleted, _ = Order.objects.filter(id__in=ids).delete()
+
+        if not isinstance(ids, list) or not ids:
+            return Response(
+                {
+                    "detail": "No orders selected."
+                },
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        invalid = [
+            value
+            for value in ids
+            if not (
+                isinstance(value, int)
+                and not isinstance(value, bool)
+            )
+        ]
+
+        if invalid:
+            return Response(
+                {
+                    "detail": "All ids must be integers.",
+                    "errors": {
+                        "ids": invalid
+                    },
+                },
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        deleted, _ = Order.objects.filter(
+            id__in=ids
+        ).delete()
+
         return Response(
-            {"detail": f"Deleted {deleted} order(s)."},
+            {
+                "detail": f"Deleted {deleted} order(s)."
+            },
             status=status.HTTP_200_OK,
         )
 
 
-# ---------------------------------------------------------------------------
-# Contact messages
-# ---------------------------------------------------------------------------
-
 class ContactMessageCreateView(generics.CreateAPIView):
-    """Public: POST /api/contact/"""
-
     queryset = ContactMessage.objects.all()
     serializer_class = ContactMessageSerializer
     permission_classes = [AllowAny]
+    throttle_scope = "contact_create"
 
 
 class AdminContactMessageViewSet(viewsets.ReadOnlyModelViewSet):
     queryset = ContactMessage.objects.all()
     serializer_class = ContactMessageSerializer
     permission_classes = [IsStaffUser]
+
     filterset_fields = ["is_read"]
-    filter_backends = [DjangoFilterBackend]
+
+    filter_backends = [
+        DjangoFilterBackend
+    ]
 
     @action(detail=True, methods=["patch"], url_path="read")
     def mark_read(self, request, pk=None):
         message = self.get_object()
+
         message.is_read = True
         message.save(update_fields=["is_read"])
-        return Response(ContactMessageSerializer(message).data)
 
+        return Response(
+            ContactMessageSerializer(message).data
+        )
 
-# ---------------------------------------------------------------------------
-# Admin dashboard stats
-# ---------------------------------------------------------------------------
 
 class AdminStatsView(APIView):
     permission_classes = [IsStaffUser]
 
     def get(self, request):
         orders = Order.objects.all()
-        # Revenue counts only DELIVERED orders.
+
         total_revenue = (
-            orders.filter(status=Order.Status.DELIVERED).aggregate(total=Sum("total"))["total"] or 0
+            orders
+            .filter(status=Order.Status.DELIVERED)
+            .aggregate(total=Sum("total"))["total"]
+            or 0
         )
+
         total_orders = orders.count()
 
         orders_by_status = {
             row["status"]: row["count"]
-            for row in orders.values("status").annotate(count=Count("id"))
+            for row in orders
+            .values("status")
+            .annotate(count=Count("id"))
         }
+
         for choice, _label in Order.Status.choices:
-            orders_by_status.setdefault(choice, 0)
+            orders_by_status.setdefault(
+                choice,
+                0
+            )
 
         total_products = Product.objects.count()
-        unread_messages = ContactMessage.objects.filter(is_read=False).count()
+
+        unread_messages = ContactMessage.objects.filter(
+            is_read=False
+        ).count()
 
         return Response(
             {
@@ -255,68 +332,83 @@ class AdminStatsView(APIView):
         )
 
     def post(self, request):
-        """
-        Reset revenue to 0. Revenue is the sum of DELIVERED orders only, so
-        this deletes all delivered orders, which zeroes the revenue figure.
-        """
-        # Delete only delivered orders — that's what counts toward revenue.
-        Order.objects.filter(status=Order.Status.DELIVERED).delete()
+        Order.objects.filter(
+            status=Order.Status.DELIVERED
+        ).delete()
+
         return self.get(request)
 
 
-# ---------------------------------------------------------------------------
-# Site Settings — public GET, admin PATCH
-# ---------------------------------------------------------------------------
-
 class SiteSettingsView(APIView):
-    """
-    GET  /api/site-settings/ — public, returns contact info for the footer.
-    PATCH /api/site-settings/ — admin only, updates contact/social fields.
-    """
-
-    parser_classes = [MultiPartParser, FormParser, JSONParser]
+    parser_classes = [
+        MultiPartParser,
+        FormParser,
+        JSONParser,
+    ]
 
     def get_permissions(self):
         if self.request.method in ("PATCH", "PUT"):
             return [IsStaffUser()]
+
         return [AllowAny()]
 
     def get(self, request):
         settings = SiteSettings.get()
-        serializer = SiteSettingsSerializer(settings, context={"request": request})
-        return Response(serializer.data)
+
+        serializer = SiteSettingsSerializer(
+            settings,
+            context={
+                "request": request
+            },
+        )
+
+        return Response(
+            serializer.data
+        )
 
     def patch(self, request):
         settings = SiteSettings.get()
+
         serializer = SiteSettingsSerializer(
-            settings, data=request.data, partial=True, context={"request": request}
+            settings,
+            data=request.data,
+            partial=True,
+            context={
+                "request": request
+            },
         )
-        serializer.is_valid(raise_exception=True)
+
+        serializer.is_valid(
+            raise_exception=True
+        )
+
         serializer.save()
-        return Response(serializer.data)
+
+        return Response(
+            serializer.data
+        )
 
     def put(self, request):
         return self.patch(request)
 
 
-# ---------------------------------------------------------------------------
-# Admin account management
-# ---------------------------------------------------------------------------
-
 class AdminAccountUpdateView(APIView):
-    """
-    PATCH /api/admin/account/ — lets the logged-in admin change their
-    username and/or password.
-    """
-
     permission_classes = [IsStaffUser]
 
     def patch(self, request):
         serializer = AdminAccountUpdateSerializer(
-            data=request.data, context={"request": request}
+            data=request.data,
+            context={
+                "request": request
+            },
         )
-        serializer.is_valid(raise_exception=True)
+
+        serializer.is_valid(
+            raise_exception=True
+        )
+
         user = serializer.save()
+
         return Response(
             {
                 "id": user.id,
