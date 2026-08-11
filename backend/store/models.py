@@ -1,7 +1,7 @@
 import random
 import string
 
-from django.db import models
+from django.db import IntegrityError, models, transaction
 from django.utils.text import slugify
 
 
@@ -189,13 +189,38 @@ class Order(models.Model):
     def __str__(self):
         return self.order_number
 
+    @staticmethod
+    def _is_order_number_unique_collision(exc):
+        if not isinstance(exc, IntegrityError):
+            return False
+
+        message = str(exc).lower()
+        return (
+            "order_number" in message
+            and ("unique" in message or "duplicate key value" in message)
+        )
+
     def save(self, *args, **kwargs):
-        if not self.order_number:
+        if self.order_number:
+            super().save(*args, **kwargs)
+            return
+
+        for attempt in range(1, 4):
             order_number = generate_order_number()
             while Order.objects.filter(order_number=order_number).exists():
                 order_number = generate_order_number()
+
             self.order_number = order_number
-        super().save(*args, **kwargs)
+            try:
+                with transaction.atomic():
+                    super().save(*args, **kwargs)
+                return
+            except IntegrityError as exc:
+                if not self._is_order_number_unique_collision(exc):
+                    raise
+                if attempt == 3:
+                    raise
+                self.order_number = ""
 
 
 class OrderItem(models.Model):
