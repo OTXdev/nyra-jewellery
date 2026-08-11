@@ -1,7 +1,7 @@
 "use client"
 
 import { useCallback, useEffect, useState } from "react"
-import { adminLogin, adminRefresh, ApiError } from "./api"
+import { adminLogin, adminRefresh, adminLogout, ApiError } from "./api"
 
 const ACCESS_KEY = "nyra_admin_access"
 const REFRESH_KEY = "nyra_admin_refresh"
@@ -55,10 +55,25 @@ export function useAdminAuth() {
     setToken(access)
   }, [])
 
-  const logout = useCallback(() => {
+  const logout = useCallback(async () => {
+  const refresh = getRefreshToken()
+
+  try {
+    if (refresh) {
+      await fetch(`${process.env.NEXT_PUBLIC_API_URL}/auth/logout/`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
+        body: JSON.stringify({ refresh }),
+      })
+    }
+  } finally {
     clearTokens()
     setToken(null)
-  }, [])
+  }
+}, [token])
 
   return { token, authed: !!token, checking, login, logout }
 }

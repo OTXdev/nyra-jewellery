@@ -367,6 +367,12 @@ export async function adminRefresh(refresh: string): Promise<string> {
   })
   return data.access
 }
+export async function adminLogout(refresh: string): Promise<void> {
+  await apiFetch("/auth/logout/", {
+    method: "POST",
+    body: JSON.stringify({ refresh }),
+  })
+}
 
 // ---------------------------------------------------------------------------
 // Admin: products

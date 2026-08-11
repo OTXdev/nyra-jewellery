@@ -25,6 +25,7 @@ urlpatterns = [
     # Auth
     path("auth/login/", views.StaffTokenObtainPairView.as_view(), name="token_obtain_pair"),
     path("auth/refresh/", TokenRefreshView.as_view(), name="token_refresh"),
+    path("auth/logout/", views.LogoutView.as_view(), name="token_logout"),
 
     # Public
     path("orders/", views.OrderCreateView.as_view(), name="order-create"),

@@ -7,7 +7,7 @@ from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
 from rest_framework.views import APIView
 from rest_framework_simplejwt.views import TokenObtainPairView
-
+from rest_framework_simplejwt.tokens import RefreshToken
 from .models import (
     Category,
     Collection,
@@ -45,7 +45,31 @@ from .serializers import (
 class StaffTokenObtainPairView(TokenObtainPairView):
     serializer_class = StaffTokenObtainPairSerializer
     throttle_scope = "staff_login"
+class LogoutView(APIView):
+    permission_classes = [IsStaffUser]
 
+    def post(self, request):
+        refresh_token = request.data.get("refresh")
+
+        if not refresh_token:
+            return Response(
+                {"detail": "Refresh token is required."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        try:
+            token = RefreshToken(refresh_token)
+            token.blacklist()
+        except Exception:
+            return Response(
+                {"detail": "Invalid or already blacklisted refresh token."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        return Response(
+            {"detail": "Logout successful."},
+            status=status.HTTP_200_OK,
+        )
 
 # ---------------------------------------------------------------------------
 # Category / Collection — public read, staff write
