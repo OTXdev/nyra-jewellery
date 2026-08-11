@@ -133,7 +133,6 @@ class Wilaya(models.Model):
     stopdesk_fee = models.PositiveIntegerField(
         blank=True, null=True, help_text="Stopdesk delivery fee in DA (optional)"
     )
-    
 
     class Meta:
         verbose_name_plural = "Wilayas"
@@ -152,6 +151,18 @@ class Order(models.Model):
         CANCELLED = "cancelled", "Cancelled"
 
     order_number = models.CharField(max_length=20, unique=True, blank=True)
+    
+    idempotency_key = models.UUIDField(
+    unique=True,
+    null=True,
+    blank=True,
+    db_index=True,)
+
+    idempotency_hash = models.CharField(
+        max_length=64,
+        null=True,
+        blank=True,
+    )
 
     customer_name = models.CharField(max_length=150)
     phone = models.CharField(max_length=30)

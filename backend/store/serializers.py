@@ -2,6 +2,8 @@ from django.contrib.auth import get_user_model
 from django.contrib.auth.password_validation import validate_password
 from django.db import transaction
 from rest_framework import serializers
+import hashlib
+import json
 
 from .models import (
     Category,
@@ -212,8 +214,8 @@ class OrderSerializer(serializers.ModelSerializer):
         read_only_fields = [f for f in fields if f != "status"]
 
     def get_is_gift_eligible(self, obj):
-        return obj.subtotal >= FREE_GIFT_THRESHOLD
-
+      settings = SiteSettings.get()
+      return obj.subtotal >= settings.free_gift_threshold
 
 class OrderStatusUpdateSerializer(serializers.ModelSerializer):
     class Meta:
@@ -221,8 +223,7 @@ class OrderStatusUpdateSerializer(serializers.ModelSerializer):
         fields = ["status"]
 
 
-FREE_DELIVERY_THRESHOLD = 7000
-FREE_GIFT_THRESHOLD = 10000
+
 
 
 class OrderCreateSerializer(serializers.Serializer):
@@ -236,6 +237,8 @@ class OrderCreateSerializer(serializers.Serializer):
     delivery_method = serializers.ChoiceField(choices=[("home","À domicile"),("stopdesk","Au bureau")], default="home", required=False)
     notes = serializers.CharField(required=False, allow_blank=True, default="")
     items = OrderItemInputSerializer(many=True)
+    idempotency_key = serializers.UUIDField(required=True)
+    
 
     def validate_items(self, items):
         if not items:
@@ -302,8 +305,57 @@ class OrderCreateSerializer(serializers.Serializer):
             raise serializers.ValidationError({"address": "Address is required for home delivery."})
         return attrs
 
+    def _build_idempotency_hash(self, validated_data):
+        payload = {
+            "customer_name": validated_data.get("customer_name", ""),
+            "phone": validated_data.get("phone", ""),
+            "wilaya_id": validated_data.get("wilaya_id"),
+            "commune": validated_data.get("commune", ""),
+            "address": validated_data.get("address", ""),
+            "delivery_method": validated_data.get("delivery_method", "home"),
+            "notes": validated_data.get("notes", ""),
+            "items": [
+                {
+                    "product_id": item["product_id"],
+                    "quantity": item["quantity"],
+                    "size": item.get("size", ""),
+                }
+                for item in validated_data.get("items", [])
+            ],
+        }
+    
+        serialized = json.dumps(
+            payload,
+            sort_keys=True,
+            separators=(",", ":"),
+        )
+
+        return hashlib.sha256(serialized.encode("utf-8")).hexdigest()
+    
+    
     @transaction.atomic
     def create(self, validated_data):
+        idempotency_key = validated_data.pop("idempotency_key")
+        idempotency_hash = self._build_idempotency_hash(validated_data)
+        existing_order = (
+            Order.objects
+            .select_for_update()
+            .filter(idempotency_key=idempotency_key)
+            .first()
+        )
+
+        if existing_order:
+            if existing_order.idempotency_hash != idempotency_hash:
+                raise serializers.ValidationError(
+                    {
+                        "idempotency_key": (
+                        "This idempotency key has already been used "
+                            "for a different order."
+                        )
+                    }
+                )
+            return existing_order
+
         products_by_id = validated_data.pop("_products_by_id")
         wilaya = Wilaya.objects.get(pk=validated_data.pop("wilaya_id"))
         items_data = validated_data.pop("items")
@@ -327,7 +379,9 @@ class OrderCreateSerializer(serializers.Serializer):
             )
 
         delivery_method = validated_data.get("delivery_method", "home")
-        if subtotal >= FREE_DELIVERY_THRESHOLD:
+        settings = SiteSettings.get()
+
+        if subtotal >= settings.free_delivery_threshold:
             delivery_fee = 0
         else:
             if delivery_method == "home":
@@ -347,6 +401,9 @@ class OrderCreateSerializer(serializers.Serializer):
             subtotal=subtotal,
             delivery_fee=delivery_fee,
             total=total,
+            idempotency_key=idempotency_key,
+            idempotency_hash=idempotency_hash,
+
         )
 
         OrderItem.objects.bulk_create(
