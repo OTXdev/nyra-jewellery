@@ -64,7 +64,7 @@ export function ProductDetail({ slug }: { slug: string }) {
   }
 
   const outOfStock = product.availability === "out-of-stock"
-  const needsSize = product.category === "rings" && (product.sizes?.length ?? 0) > 0
+  const needsSize = (product.sizes?.length ?? 0) > 0
   const images = product.images.length ? product.images : ["/placeholder.svg"]
   const related = product.relatedProducts ?? []
 

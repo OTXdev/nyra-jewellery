@@ -302,6 +302,8 @@ export interface SiteSettings {
   tiktok: string
   hero_image: string | null
   about_image: string | null
+  free_delivery_threshold: number
+  free_gift_threshold: number
 }
 
 export async function fetchSiteSettings(): Promise<SiteSettings> {

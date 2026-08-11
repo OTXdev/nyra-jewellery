@@ -133,6 +133,7 @@ class Wilaya(models.Model):
     stopdesk_fee = models.PositiveIntegerField(
         blank=True, null=True, help_text="Stopdesk delivery fee in DA (optional)"
     )
+    
 
     class Meta:
         verbose_name_plural = "Wilayas"
@@ -262,22 +263,49 @@ class ContactMessage(models.Model):
 
 class SiteSettings(models.Model):
     """
-    Singleton model for editable site-wide contact and social information.
+    Singleton model for editable site-wide contact, social,
+    and business configuration.
     Always use SiteSettings.get() to retrieve the single instance.
     """
 
-    phone = models.CharField(max_length=50, blank=True, help_text="Phone number (digits only, e.g. 213555000000)")
-    phone_display = models.CharField(max_length=50, blank=True, help_text="Formatted phone for display, e.g. +213 555 00 00 00")
+    phone = models.CharField(
+        max_length=50,
+        blank=True,
+        help_text="Phone number (digits only, e.g. 213555000000)",
+    )
+    phone_display = models.CharField(
+        max_length=50,
+        blank=True,
+        help_text="Formatted phone for display, e.g. +213 555 00 00 00",
+    )
     email = models.EmailField(blank=True)
     address = models.CharField(max_length=200, blank=True)
     instagram = models.URLField(blank=True)
     tiktok = models.URLField(blank=True)
+
     hero_image = models.ImageField(
-        upload_to="site/", blank=True, null=True, help_text="Homepage hero image"
+        upload_to="site/",
+        blank=True,
+        null=True,
+        help_text="Homepage hero image",
     )
     about_image = models.ImageField(
-        upload_to="site/", blank=True, null=True, help_text="About page image"
+        upload_to="site/",
+        blank=True,
+        null=True,
+        help_text="About page image",
     )
+
+    # Business configuration
+    free_delivery_threshold = models.PositiveIntegerField(
+        default=7000,
+        help_text="Minimum order subtotal for free delivery, in DA.",
+    )
+    free_gift_threshold = models.PositiveIntegerField(
+        default=10000,
+        help_text="Minimum order subtotal for free gift eligibility, in DA.",
+    )
+
     updated_at = models.DateTimeField(auto_now=True)
 
     class Meta:
@@ -299,6 +327,8 @@ class SiteSettings(models.Model):
                 "address": "Alger, Algeria",
                 "instagram": "https://instagram.com",
                 "tiktok": "https://tiktok.com",
+                "free_delivery_threshold": 7000,
+                "free_gift_threshold": 10000,
             },
         )
         return obj

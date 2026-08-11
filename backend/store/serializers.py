@@ -389,11 +389,15 @@ class SiteSettingsSerializer(serializers.ModelSerializer):
             "tiktok",
             "hero_image",
             "about_image",
+
+            # Business configuration
+            "free_delivery_threshold",
+            "free_gift_threshold",
+
+
             "updated_at",
         ]
         read_only_fields = ["updated_at"]
-
-
 # ---------------------------------------------------------------------------
 # Auth
 # ---------------------------------------------------------------------------

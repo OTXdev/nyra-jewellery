@@ -1,5 +1,4 @@
 "use client"
-
 import {
   createContext,
   useCallback,
@@ -14,6 +13,8 @@ import {
   updateProduct as apiUpdateProduct,
   fetchAllProducts,
   fetchCollections,
+  fetchSiteSettings,
+  type SiteSettings,
   type ProductWritePayload,
 } from "@/lib/api"
 import { getAdminToken } from "@/lib/admin-auth"
@@ -29,15 +30,14 @@ interface DeliveryStatus {
   remaining: number
 }
 
-// Marketing thresholds only — the *actual* delivery cost charged on an order
-// comes from the wilaya's real fee (see /api/wilayas/), applied at checkout.
-const FREE_DELIVERY_THRESHOLD = 7000
-const FREE_GIFT_THRESHOLD = 10000
+
 // Max quantity per line item — must match the backend OrderItemInputSerializer limit.
 const MAX_QUANTITY = 20
 
+
 interface StoreContextValue {
   hydrated: boolean
+  siteSettings: SiteSettings | null
   // catalog
   products: Product[]
   collections: Collection[]
@@ -72,6 +72,9 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
   const [productsLoading, setProductsLoading] = useState(true)
   const [productsError, setProductsError] = useState<string | null>(null)
   const [cart, setCart] = useState<CartItem[]>([])
+  const [freeDeliveryThreshold, setFreeDeliveryThreshold] = useState(7000)
+  const [freeGiftThreshold, setFreeGiftThreshold] = useState(10000)
+  const [siteSettings, setSiteSettings] = useState<SiteSettings | null>(null)
 
   const loadCatalog = useCallback(async () => {
     setProductsLoading(true)
@@ -94,6 +97,16 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     loadCatalog()
   }, [loadCatalog])
+  useEffect(() => {
+  fetchSiteSettings()
+    .then((settings) => {
+      setFreeDeliveryThreshold(settings.free_delivery_threshold)
+      setFreeGiftThreshold(settings.free_gift_threshold)
+    })
+    .catch(() => {
+      // Keep the fallback values if site settings cannot be loaded.
+    })
+}, [])
 
   // Cart still lives in localStorage — it's device-local until checkout.
   useEffect(() => {
@@ -199,25 +212,30 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
       }, 0),
     [cart, products],
   )
+const delivery = useMemo<DeliveryStatus>(() => {
+  const freeDelivery = subtotal >= freeDeliveryThreshold
+  const freeGift = subtotal >= freeGiftThreshold
 
-  const delivery = useMemo<DeliveryStatus>(() => {
-    const freeDelivery = subtotal >= FREE_DELIVERY_THRESHOLD
-    const freeGift = subtotal >= FREE_GIFT_THRESHOLD
-    const next = !freeDelivery
-      ? { threshold: FREE_DELIVERY_THRESHOLD, label: "Livraison gratuite" }
-      : !freeGift
-        ? { threshold: FREE_GIFT_THRESHOLD, label: "Livraison gratuite + Petit cadeau offert" }
-        : null
-    return {
-      freeDelivery,
-      freeGift,
-      nextThreshold: next?.threshold ?? null,
-      nextLabel: next?.label ?? null,
-      remaining: next ? next.threshold - subtotal : 0,
-    }
-  }, [subtotal])
+  const next = !freeDelivery
+    ? { threshold: freeDeliveryThreshold, label: "Livraison gratuite" }
+    : !freeGift
+      ? {
+          threshold: freeGiftThreshold,
+          label: "Livraison gratuite + Petit cadeau offert",
+        }
+      : null
+
+  return {
+    freeDelivery,
+    freeGift,
+    nextThreshold: next?.threshold ?? null,
+    nextLabel: next?.label ?? null,
+    remaining: next ? next.threshold - subtotal : 0,
+  }
+}, [subtotal, freeDeliveryThreshold, freeGiftThreshold])
 
   const value: StoreContextValue = {
+    siteSettings,
     hydrated,
     products,
     collections,
