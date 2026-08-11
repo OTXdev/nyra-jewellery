@@ -35,7 +35,6 @@ export function OrderForm() {
     [wilayas, form.wilayaId],
   )
 
-  // Apply free-delivery rule on the frontend display to match backend behaviour.
   const rawDeliveryFee = selectedWilaya?.deliveryFee ?? 0
   const rawStopdeskFee = selectedWilaya?.stopdeskFee ?? selectedWilaya?.deliveryFee ?? 0
   const chosenRawFee = deliveryMethod === "home" ? rawDeliveryFee : rawStopdeskFee
@@ -71,15 +70,16 @@ export function OrderForm() {
     setErrors(e)
     return Object.keys(e).length === 0
   }
-
-  async function handleSubmit(ev: React.FormEvent) {
+   async function handleSubmit(ev: React.FormEvent) {
     ev.preventDefault()
     setSubmitError(null)
     if (!validate()) return
 
+    const idempotencyKey = crypto.randomUUID() 
     setSubmitting(true)
     try {
-      const order = await createOrder({
+    const order = await createOrder({
+        idempotency_key: idempotencyKey,
         customer_name: form.fullName.trim(),
         phone: form.phone.trim(),
         wilaya_id: Number(form.wilayaId),

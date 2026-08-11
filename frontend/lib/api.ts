@@ -259,6 +259,7 @@ export async function fetchProduct(slug: string, collectionNamesBySlug?: Record<
 }
 
 export interface CreateOrderPayload {
+  idempotency_key: string
   customer_name: string
   phone: string
   wilaya_id: number
@@ -266,7 +267,11 @@ export interface CreateOrderPayload {
   address?: string
   delivery_method?: "home" | "stopdesk"
   notes?: string
-  items: { product_id: number; quantity: number; size?: string }[]
+  items: {
+    product_id: number
+    quantity: number
+    size?: string
+  }[]
 }
 
 export async function createOrder(payload: CreateOrderPayload): Promise<Order> {
