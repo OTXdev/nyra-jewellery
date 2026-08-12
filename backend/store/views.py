@@ -1,4 +1,7 @@
+from django.conf import settings
 from django.db.models import Count, Q, Sum
+from django.utils.decorators import method_decorator
+from django.views.decorators.csrf import ensure_csrf_cookie
 from django_filters.rest_framework import DjangoFilterBackend
 from rest_framework import filters, generics, status, viewsets
 from rest_framework.decorators import action
@@ -6,8 +9,11 @@ from rest_framework.parsers import FormParser, MultiPartParser, JSONParser
 from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
 from rest_framework.views import APIView
+from rest_framework_simplejwt.exceptions import InvalidToken, TokenError
+from rest_framework_simplejwt.serializers import TokenRefreshSerializer
 from rest_framework_simplejwt.views import TokenObtainPairView
 from rest_framework_simplejwt.tokens import RefreshToken
+from .jwt_cookies import clear_auth_cookies, set_auth_cookies, set_access_cookie, set_refresh_cookie
 from .models import (
     Category,
     Collection,
@@ -43,33 +49,112 @@ from .serializers import (
 # ---------------------------------------------------------------------------
 
 class StaffTokenObtainPairView(TokenObtainPairView):
+    """
+    POST /api/auth/login/ — authenticates a staff user and sets the access
+    + refresh JWTs as HttpOnly cookies. The tokens are never included in
+    the JSON response body, so they are never reachable from JavaScript.
+    """
+
     serializer_class = StaffTokenObtainPairSerializer
     throttle_scope = "staff_login"
+
+    def post(self, request, *args, **kwargs):
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        data = dict(serializer.validated_data)
+        access = data.pop("access")
+        refresh = data.pop("refresh")
+
+        response = Response(data, status=status.HTTP_200_OK)
+        set_auth_cookies(response, access, refresh)
+        return response
+
+
+class CookieTokenRefreshView(APIView):
+    """
+    POST /api/auth/refresh/ — reads the refresh token from the HttpOnly
+    `nyra_refresh_token` cookie (never from the request body), validates
+    it, and replaces the `nyra_access_token` cookie with a freshly issued
+    access token. Because SIMPLE_JWT["ROTATE_REFRESH_TOKENS"] is True, the
+    refresh cookie itself is also rotated and the old refresh token is
+    blacklisted.
+    """
+
+    permission_classes = [AllowAny]
+    authentication_classes = []
+    throttle_scope = None
+
+    def post(self, request, *args, **kwargs):
+        raw_refresh = request.COOKIES.get(settings.JWT_REFRESH_COOKIE)
+        if not raw_refresh:
+            return Response(
+                {"detail": "No refresh token cookie present."},
+                status=status.HTTP_401_UNAUTHORIZED,
+            )
+
+        serializer = TokenRefreshSerializer(data={"refresh": raw_refresh})
+        try:
+            serializer.is_valid(raise_exception=True)
+        except (InvalidToken, TokenError):
+            response = Response(
+                {"detail": "Refresh token is invalid or expired."},
+                status=status.HTTP_401_UNAUTHORIZED,
+            )
+            clear_auth_cookies(response)
+            return response
+
+        data = serializer.validated_data
+        response = Response({"detail": "Token refreshed."}, status=status.HTTP_200_OK)
+        set_access_cookie(response, data["access"])
+        # Only present when ROTATE_REFRESH_TOKENS is enabled.
+        if "refresh" in data:
+            set_refresh_cookie(response, data["refresh"])
+        return response
+
+
 class LogoutView(APIView):
+    """
+    POST /api/auth/logout/ — reads the refresh token from the HttpOnly
+    cookie (the frontend never has to know or send it), blacklists it,
+    and clears both auth cookies. Idempotent: always clears cookies even
+    if the refresh token was already missing/invalid/expired.
+    """
+
     permission_classes = [IsStaffUser]
 
     def post(self, request):
-        refresh_token = request.data.get("refresh")
+        refresh_token = request.COOKIES.get(settings.JWT_REFRESH_COOKIE)
 
-        if not refresh_token:
-            return Response(
-                {"detail": "Refresh token is required."},
-                status=status.HTTP_400_BAD_REQUEST,
-            )
+        if refresh_token:
+            try:
+                token = RefreshToken(refresh_token)
+                token.blacklist()
+            except Exception:
+                # Already blacklisted/expired/malformed — nothing more to
+                # do server-side, but we still clear the client's cookies.
+                pass
 
-        try:
-            token = RefreshToken(refresh_token)
-            token.blacklist()
-        except Exception:
-            return Response(
-                {"detail": "Invalid or already blacklisted refresh token."},
-                status=status.HTTP_400_BAD_REQUEST,
-            )
+        response = Response({"detail": "Logout successful."}, status=status.HTTP_200_OK)
+        clear_auth_cookies(response)
+        return response
 
-        return Response(
-            {"detail": "Logout successful."},
-            status=status.HTTP_200_OK,
-        )
+
+@method_decorator(ensure_csrf_cookie, name="dispatch")
+class CsrfTokenView(APIView):
+    """
+    GET /api/auth/csrf/ — has no purpose other than to make Django set the
+    (non-HttpOnly, JS-readable) `csrftoken` cookie via ensure_csrf_cookie.
+    The frontend calls this once before login/admin actions so it has a
+    CSRF token to echo back in the `X-CSRFToken` header on unsafe
+    (POST/PUT/PATCH/DELETE) requests — required because CookieJWTAuthentication
+    enforces CSRF checks whenever auth comes from the cookie.
+    """
+
+    permission_classes = [AllowAny]
+    authentication_classes = []
+
+    def get(self, request):
+        return Response({"detail": "CSRF cookie set."})
 
 # ---------------------------------------------------------------------------
 # Category / Collection — public read, staff write

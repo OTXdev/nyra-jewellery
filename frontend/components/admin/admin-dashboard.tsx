@@ -1155,6 +1155,7 @@ function AccountSettings({ token }: { token: string }) {
             </div>
           </div>
         </div>
+        
 
         {error && <p className="text-sm text-destructive">{error}</p>}
         {success && <p className="text-sm text-primary">{success}</p>}
@@ -1176,16 +1177,18 @@ function AccountSettings({ token }: { token: string }) {
 // -- Contact Information -----------------------------------------------------
 
 function ContactSettings({ token }: { token: string }) {
-  const [form, setForm] = useState<SiteSettings>({
-    phone: "",
-    phone_display: "",
-    email: "",
-    address: "",
-    instagram: "",
-    tiktok: "",
-    hero_image: null,
-    about_image: null,
-  })
+const [form, setForm] = useState<SiteSettings>({
+  phone: "",
+  phone_display: "",
+  email: "",
+  address: "",
+  instagram: "",
+  tiktok: "",
+  hero_image: null,
+  about_image: null,
+  free_delivery_threshold: 7000,
+  free_gift_threshold: 10000,
+})
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [success, setSuccess] = useState(false)
@@ -1302,6 +1305,45 @@ function ContactSettings({ token }: { token: string }) {
             />
           </label>
         </div>
+        <div className="grid gap-4 sm:grid-cols-2">
+  <label className="block text-sm">
+    <span className="mb-1 block font-medium">
+      Livraison gratuite à partir de (DA)
+    </span>
+    <input
+      type="number"
+      min="0"
+      className="input"
+      value={form.free_delivery_threshold}
+      onChange={(e) =>
+        setForm({
+          ...form,
+          free_delivery_threshold: Number(e.target.value),
+        })
+      }
+      placeholder="7000"
+    />
+  </label>
+
+  <label className="block text-sm">
+    <span className="mb-1 block font-medium">
+      Cadeau surprise à partir de (DA)
+    </span>
+    <input
+      type="number"
+      min="0"
+      className="input"
+      value={form.free_gift_threshold}
+      onChange={(e) =>
+        setForm({
+          ...form,
+          free_gift_threshold: Number(e.target.value),
+        })
+      }
+      placeholder="10000"
+    />
+  </label>
+</div>
 
         {error && <p className="text-sm text-destructive">{error}</p>}
         {success && <p className="text-sm text-primary">Informations de contact enregistrées avec succès.</p>}

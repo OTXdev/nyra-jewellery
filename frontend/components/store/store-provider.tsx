@@ -38,6 +38,8 @@ const MAX_QUANTITY = 20
 interface StoreContextValue {
   hydrated: boolean
   siteSettings: SiteSettings | null
+  freeDeliveryThreshold: number
+  freeGiftThreshold: number
   // catalog
   products: Product[]
   collections: Collection[]
@@ -57,6 +59,7 @@ interface StoreContextValue {
   cartCount: number
   subtotal: number
   delivery: DeliveryStatus
+  refreshSiteSettings: () => Promise<void>
 }
 
 const StoreContext = createContext<StoreContextValue | null>(null)
@@ -93,20 +96,26 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
     }
   }, [])
 
+  
   // Fetch catalog from the backend on mount.
   useEffect(() => {
     loadCatalog()
   }, [loadCatalog])
-  useEffect(() => {
-  fetchSiteSettings()
-    .then((settings) => {
-      setFreeDeliveryThreshold(settings.free_delivery_threshold)
-      setFreeGiftThreshold(settings.free_gift_threshold)
-    })
-    .catch(() => {
-      // Keep the fallback values if site settings cannot be loaded.
-    })
+
+const refreshSiteSettings = useCallback(async () => {
+  try {
+    const settings = await fetchSiteSettings()
+    setFreeDeliveryThreshold(settings.free_delivery_threshold)
+    setFreeGiftThreshold(settings.free_gift_threshold)
+    setSiteSettings(settings)
+  } catch {
+    // Keep fallback values: 7000 and 10000
+  }
 }, [])
+
+useEffect(() => {
+  refreshSiteSettings()
+}, [refreshSiteSettings])
 
   // Cart still lives in localStorage — it's device-local until checkout.
   useEffect(() => {
@@ -234,28 +243,30 @@ const delivery = useMemo<DeliveryStatus>(() => {
   }
 }, [subtotal, freeDeliveryThreshold, freeGiftThreshold])
 
-  const value: StoreContextValue = {
-    siteSettings,
-    hydrated,
-    products,
-    collections,
-    productsLoading,
-    productsError,
-    refreshProducts: loadCatalog,
-    getProduct,
-    addProduct,
-    updateProduct,
-    deleteProduct,
-    cart,
-    addToCart,
-    removeFromCart,
-    updateQuantity,
-    clearCart,
-    cartCount,
-    subtotal,
-    delivery,
-  }
-
+const value: StoreContextValue = {
+  siteSettings,
+  freeDeliveryThreshold,
+  freeGiftThreshold,
+  hydrated,
+  products,
+  collections,
+  productsLoading,
+  productsError,
+  refreshProducts: loadCatalog,
+  getProduct,
+  addProduct,
+  updateProduct,
+  deleteProduct,
+  cart,
+  addToCart,
+  removeFromCart,
+  updateQuantity,
+  clearCart,
+  cartCount,
+  subtotal,
+  delivery,
+  refreshSiteSettings,
+}
   return <StoreContext.Provider value={value}>{children}</StoreContext.Provider>
 }
 

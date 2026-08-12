@@ -191,7 +191,7 @@ DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 # DJANGO REST FRAMEWORK
 REST_FRAMEWORK = {
     "DEFAULT_AUTHENTICATION_CLASSES": (
-        "rest_framework_simplejwt.authentication.JWTAuthentication",
+        "store.authentication.CookieJWTAuthentication",
     ),
     "DEFAULT_PERMISSION_CLASSES": (
         "rest_framework.permissions.AllowAny",
@@ -235,6 +235,57 @@ CORS_ALLOWED_ORIGINS = env_list(
     "http://localhost:3000,http://127.0.0.1:3000",
 )
 CORS_ALLOW_CREDENTIALS = True
+
+
+from corsheaders.defaults import default_headers as _cors_default_headers  # noqa: E402
+
+CORS_ALLOW_HEADERS = list(_cors_default_headers) + ["x-csrftoken"]
+
+# ---------------------------------------------------------------------------
+# Cookie-based admin JWT authentication
+# ---------------------------------------------------------------------------
+# The admin access/refresh tokens are issued as HttpOnly cookies (see
+# store/jwt_cookies.py and store/authentication.py) instead of being stored
+# in localStorage, so they can't be read or exfiltrated by JavaScript/XSS.
+JWT_AUTH_COOKIE = os.environ.get("JWT_AUTH_COOKIE", "nyra_access_token")
+JWT_REFRESH_COOKIE = os.environ.get("JWT_REFRESH_COOKIE", "nyra_refresh_token")
+
+# Secure defaults to "not development" like the other cookie flags above —
+# i.e. plain HTTP localhost works out of the box, but any non-development
+# deployment requires HTTPS-only cookies unless explicitly overridden.
+JWT_COOKIE_SECURE = env_bool("JWT_COOKIE_SECURE", default=not IS_DEVELOPMENT)
+
+# "Lax" is correct for this project's actual architecture: frontend
+# (localhost:3000) and backend (localhost:8000) are same-site (same
+# registrable domain, different port), and SameSite is defined per-site,
+# not per-port, so Lax cookies ARE sent on the frontend's same-site fetch
+# calls. If frontend and backend ever move to genuinely different
+# registrable domains in production (e.g. app.example.com calling
+# api.other-domain.com), this must be set to "None" (which also forces
+# Secure=True) via the JWT_COOKIE_SAMESITE env var.
+JWT_COOKIE_SAMESITE = os.environ.get("JWT_COOKIE_SAMESITE", "Lax")
+
+# Unset by default (host-only cookie). Set e.g. ".nyra-jewellery.com" in
+# production only if the API and frontend share a parent domain.
+JWT_COOKIE_DOMAIN = os.environ.get("JWT_COOKIE_DOMAIN") or None
+
+# Browsers reject SameSite=None cookies that aren't also Secure — enforce
+# that regardless of JWT_COOKIE_SECURE/IS_DEVELOPMENT so a misconfigured
+# cross-domain deployment fails loudly instead of silently dropping cookies.
+if JWT_COOKIE_SAMESITE.lower() == "none":
+    JWT_COOKIE_SECURE = True
+
+# CSRF: cookie-based JWT auth means the browser now attaches the admin's
+# credential automatically on cross-site requests, so CSRF protection is
+# required for unsafe methods (see store/authentication.py::enforce_csrf).
+# Django 4+ also requires the Origin header's scheme+host+port to match one
+# of CSRF_TRUSTED_ORIGINS for any cross-origin unsafe request — the
+# frontend origin(s) must be listed here (reusing CORS_ALLOWED_ORIGINS
+# keeps the two lists from drifting apart).
+CSRF_TRUSTED_ORIGINS = env_list("CSRF_TRUSTED_ORIGINS", ",".join(CORS_ALLOWED_ORIGINS))
+CSRF_COOKIE_SAMESITE = JWT_COOKIE_SAMESITE
+CSRF_COOKIE_HTTPONLY = False  # must stay JS-readable so the frontend can echo it back
+CSRF_HEADER_NAME = "HTTP_X_CSRFTOKEN"
 
 DATA_UPLOAD_MAX_MEMORY_SIZE = 5 * 1024 * 1024
 FILE_UPLOAD_MAX_MEMORY_SIZE = 5 * 1024 * 1024

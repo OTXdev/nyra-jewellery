@@ -21,18 +21,64 @@ export class ApiError extends Error {
 }
 
 interface FetchOptions extends RequestInit {
+  /**
+   * Historical parameter from the localStorage-JWT days. Admin auth is now
+   * HttpOnly-cookie based (the browser attaches it automatically via
+   * `credentials: "include"`), so this is no longer read or required — it's
+   * kept only so existing call sites throughout the admin dashboard don't
+   * all need to be rewritten. Do not put a real JWT in it.
+   */
   token?: string | null
 }
 
+const UNSAFE_METHODS = new Set(["POST", "PUT", "PATCH", "DELETE"])
+
+function readCookie(name: string): string | null {
+  if (typeof document === "undefined") return null
+  const match = document.cookie.match(new RegExp(`(?:^|; )${name}=([^;]*)`))
+  return match ? decodeURIComponent(match[1]) : null
+}
+
+// Caches the in-flight request so concurrent unsafe calls don't all fire
+// their own GET /auth/csrf/ before the cookie lands.
+let csrfCookieRequest: Promise<void> | null = null
+
+/** Ensures the (JS-readable, non-HttpOnly) `csrftoken` cookie is set, so it
+ * can be echoed back in the `X-CSRFToken` header on unsafe requests. This
+ * carries no secret — it only proves the request came from a page that
+ * could read this site's cookies, which is the point of CSRF protection. */
+async function ensureCsrfCookie(): Promise<void> {
+  if (readCookie("csrftoken")) return
+  if (!csrfCookieRequest) {
+    csrfCookieRequest = fetch(`${API_BASE}/auth/csrf/`, { credentials: "include" })
+      .then(() => undefined)
+      .catch(() => undefined)
+      .finally(() => {
+        csrfCookieRequest = null
+      })
+  }
+  return csrfCookieRequest
+}
+
 async function apiFetch(path: string, options: FetchOptions = {}) {
-  const { token, headers, ...rest } = options
+  const { token: _token, headers, method, ...rest } = options
   const isFormData = typeof FormData !== "undefined" && rest.body instanceof FormData
+  const httpMethod = (method || "GET").toUpperCase()
+
+  if (UNSAFE_METHODS.has(httpMethod)) {
+    await ensureCsrfCookie()
+  }
+  const csrfToken = readCookie("csrftoken")
 
   const res = await fetch(`${API_BASE}${path}`, {
     ...rest,
+    method: httpMethod,
+    // Admin auth cookies (HttpOnly) are sent automatically by the browser
+    // whenever this is set — no JWT ever touches JavaScript.
+    credentials: "include",
     headers: {
       ...(isFormData ? {} : { "Content-Type": "application/json" }),
-      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+      ...(UNSAFE_METHODS.has(httpMethod) && csrfToken ? { "X-CSRFToken": csrfToken } : {}),
       ...(headers || {}),
     },
   })
@@ -316,10 +362,13 @@ export async function fetchSiteSettings(): Promise<SiteSettings> {
 }
 
 export async function updateSiteSettings(token: string, payload: Partial<SiteSettings>): Promise<SiteSettings> {
+  // Remove image fields; they are updated separately via updateSiteImage
+  // Sending string URLs for image fields causes validation errors.
+  const { hero_image, about_image, ...data } = payload as any;
   return apiFetch("/site-settings/", {
     method: "PATCH",
     token,
-    body: JSON.stringify(payload),
+    body: JSON.stringify(data),
   })
 }
 
@@ -352,33 +401,34 @@ export async function resetAdminRevenue(token: string): Promise<AdminStats> {
 
 // ---------------------------------------------------------------------------
 // Admin auth
+//
+// The access/refresh JWTs live in HttpOnly cookies set directly by Django —
+// they are never present in these response bodies and never touch
+// JavaScript. These functions only carry non-secret admin identity info.
 // ---------------------------------------------------------------------------
 
-export interface TokenPair {
-  access: string
-  refresh: string
+export interface AdminUser {
+  id: number
+  username: string
+  email: string
 }
 
-export async function adminLogin(username: string, password: string): Promise<TokenPair> {
+export async function adminLogin(username: string, password: string): Promise<AdminUser> {
   const data = await apiFetch("/auth/login/", {
     method: "POST",
     body: JSON.stringify({ username, password }),
   })
-  return { access: data.access, refresh: data.refresh }
+  return data.user
 }
 
-export async function adminRefresh(refresh: string): Promise<string> {
-  const data = await apiFetch("/auth/refresh/", {
-    method: "POST",
-    body: JSON.stringify({ refresh }),
-  })
-  return data.access
+/** Silently refreshes the admin session using only the HttpOnly refresh
+ * cookie — resolves once the access cookie has been reissued. */
+export async function adminRefresh(): Promise<void> {
+  await apiFetch("/auth/refresh/", { method: "POST" })
 }
-export async function adminLogout(refresh: string): Promise<void> {
-  await apiFetch("/auth/logout/", {
-    method: "POST",
-    body: JSON.stringify({ refresh }),
-  })
+
+export async function adminLogout(): Promise<void> {
+  await apiFetch("/auth/logout/", { method: "POST" })
 }
 
 // ---------------------------------------------------------------------------

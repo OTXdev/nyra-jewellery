@@ -26,8 +26,7 @@ export function Categories() {
       })
   }, [])
 
-  // Build the display list from the categories returned by the backend.
-  // Only categories with an uploaded admin image are shown — no fallbacks.
+
   const items = CATEGORY_ORDER.flatMap((slug) => {
     const cat = categories.find((c) => c.slug === slug)
     if (!cat || !cat.image) return []

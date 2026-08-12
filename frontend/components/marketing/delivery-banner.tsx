@@ -1,8 +1,13 @@
+"use client"
+
 import { Gift, Truck } from 'lucide-react'
 import { formatDA } from '@/lib/format'
 import { cn } from '@/lib/utils'
+import { useStore } from '@/components/store/store-provider'
 
 export function DeliveryOffers({ className }: { className?: string }) {
+  const { freeDeliveryThreshold, freeGiftThreshold } = useStore()
+
   return (
     <div className={cn('grid gap-4 sm:grid-cols-2', className)}>
       <div className="flex items-center gap-4 rounded-2xl border border-accent/50 bg-accent/15 p-5">
@@ -12,7 +17,7 @@ export function DeliveryOffers({ className }: { className?: string }) {
         <div>
           <p className="font-medium text-foreground">Livraison gratuite</p>
           <p className="text-sm text-muted-foreground">
-            Pour toute commande de {formatDA(7000)} ou plus.
+            Pour toute commande de {formatDA(freeDeliveryThreshold)} ou plus.
           </p>
         </div>
       </div>
@@ -23,7 +28,7 @@ export function DeliveryOffers({ className }: { className?: string }) {
         <div>
           <p className="font-medium text-foreground">Petit cadeau offert</p>
           <p className="text-sm text-muted-foreground">
-            Et livraison gratuite pour les commandes de {formatDA(10000)}+.
+            Et livraison gratuite pour les commandes de {formatDA(freeGiftThreshold)}+.
           </p>
         </div>
       </div>
@@ -45,8 +50,11 @@ export function DeliveryProgress({
   freeDelivery: boolean
   freeGift: boolean
 }) {
-  const target = freeDelivery ? 10000 : 7000
+  const { freeDeliveryThreshold, freeGiftThreshold } = useStore()
+  
+  const target = freeDelivery ? freeGiftThreshold : freeDeliveryThreshold
   const pct = Math.min(100, Math.round((subtotal / target) * 100))
+
   return (
     <div className="rounded-2xl border border-border bg-secondary/60 p-4">
       {freeGift ? (

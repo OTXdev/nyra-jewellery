@@ -95,18 +95,13 @@ export function Hero() {
               <p className="font-serif text-2xl font-semibold text-ivory">
                 Gratuite
               </p>
-              <p>Livraison 7k+</p>
+              <p>Offres Livraison</p>
             </div>
           </div>
         </div>
 
         {/* Right column intentionally left clear so the photography reads
             through the gradient; the floating detail card anchors it */}
-      </div>
-
-      <div className="absolute bottom-6 left-4 z-10 animate-fade-up rounded-2xl border border-ivory/30 bg-card/90 px-5 py-4 shadow-xl backdrop-blur [animation-delay:120ms] lg:hidden">
-        <p className="font-serif text-lg text-primary">Royal Emerald</p>
-        <p className="text-xs text-muted-foreground">Nouvelle collection</p>
       </div>
     </section>
   )

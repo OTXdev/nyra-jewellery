@@ -1,6 +1,5 @@
 from django.urls import include, path
 from rest_framework.routers import DefaultRouter
-from rest_framework_simplejwt.views import TokenRefreshView
 
 from . import views
 
@@ -24,8 +23,9 @@ admin_router.register("product-images", views.ProductImageViewSet, basename="adm
 urlpatterns = [
     # Auth
     path("auth/login/", views.StaffTokenObtainPairView.as_view(), name="token_obtain_pair"),
-    path("auth/refresh/", TokenRefreshView.as_view(), name="token_refresh"),
+    path("auth/refresh/", views.CookieTokenRefreshView.as_view(), name="token_refresh"),
     path("auth/logout/", views.LogoutView.as_view(), name="token_logout"),
+    path("auth/csrf/", views.CsrfTokenView.as_view(), name="token_csrf"),
 
     # Public
     path("orders/", views.OrderCreateView.as_view(), name="order-create"),
