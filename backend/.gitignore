@@ -9,6 +9,7 @@ tests.py
 
 media/*
 media-backup/
+nyra_data.sql
 
 staticfiles/
 
