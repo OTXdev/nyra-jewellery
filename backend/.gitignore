@@ -8,3 +8,4 @@ media/*
 staticfiles/
 venv/
 *.egg-info/
+media-backup/
