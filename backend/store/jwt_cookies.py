@@ -1,17 +1,7 @@
-"""Helpers for issuing/clearing the HttpOnly admin JWT cookies.
-
-Cookie names, lifetimes and security attributes are all driven by
-settings.py (which itself reads from the environment), so behaviour can
-be tuned per-environment without touching this code — see
-JWT_AUTH_COOKIE, JWT_REFRESH_COOKIE, JWT_COOKIE_SECURE,
-JWT_COOKIE_SAMESITE and JWT_COOKIE_DOMAIN in settings.py.
-"""
 
 from django.conf import settings
 
-# The refresh cookie is scoped to the auth endpoints only, so the browser
-# never sends it to unrelated API routes (defense in depth — the refresh
-# token is the longer-lived, more sensitive credential).
+
 REFRESH_COOKIE_PATH = "/api/auth/"
 ACCESS_COOKIE_PATH = "/"
 
