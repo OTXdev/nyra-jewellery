@@ -47,8 +47,7 @@ class ImageKitStorage(Storage):
         )
 
     def delete(self, name):
-        # Remote deletion will be implemented separately after
-        # upload functionality has been verified.
+       
         pass
 
     def exists(self, name):
