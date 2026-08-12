@@ -392,14 +392,6 @@ class AdminStatsView(APIView):
             status=status.HTTP_200_OK,
         )
 
-    def post(self, request):
-        """
-        Reset revenue to 0. Revenue is the sum of DELIVERED orders only, so
-        this deletes all delivered orders, which zeroes the revenue figure.
-        """
-        # Delete only delivered orders — that's what counts toward revenue.
-        Order.objects.filter(status=Order.Status.DELIVERED).delete()
-        return self.get(request)
 
 
 # ---------------------------------------------------------------------------

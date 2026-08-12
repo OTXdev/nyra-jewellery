@@ -33,7 +33,6 @@ import {
   fetchCollections,
   fetchProductImages,
   fetchSiteSettings,
-  resetAdminRevenue,
   updateAdminAccount,
   updateCategoryImage,
   updateCollection,
@@ -172,11 +171,6 @@ function Dashboard({ token, onLogout }: { token: string; onLogout: () => void })
     setOrders((prev) => prev.map((o) => (o.id === id ? updated : o)))
   }
 
-  async function handleResetRevenue() {
-    const updated = await resetAdminRevenue(token)
-    setStats(updated)
-  }
-
   async function handleBulkDelete(ids: number[]) {
     await deleteOrders(token, ids)
     setOrders((prev) => prev.filter((o) => !ids.includes(o.id)))
@@ -239,8 +233,8 @@ function Dashboard({ token, onLogout }: { token: string; onLogout: () => void })
 
       <div className="mt-6">
         {tab === "overview" && (
-          <Overview orders={orders} loading={ordersLoading} onResetRevenue={handleResetRevenue} />
-        )}
+         <Overview orders={orders} loading={ordersLoading} />    
+             )}
         {tab === "orders" && (
           <OrdersTable
             orders={orders}
@@ -299,83 +293,19 @@ function Stat({
 // ---------------------------------------------------------------------------
 // Overview tab
 // ---------------------------------------------------------------------------
-
 function Overview({
   orders,
   loading,
-  onResetRevenue,
 }: {
   orders: Order[]
   loading: boolean
-  onResetRevenue: () => Promise<void>
 }) {
-  const [confirming, setConfirming] = useState(false)
-  const [resetting, setResetting] = useState(false)
-  const [error, setError] = useState<string | null>(null)
 
-  async function confirmReset() {
-    setResetting(true)
-    setError(null)
-    try {
-      await onResetRevenue()
-      setConfirming(false)
-    } catch (err) {
-      setError(err instanceof ApiError ? err.message : "Impossible de réinitialiser le chiffre d'affaires. Veuillez réessayer.")
-    } finally {
-      setResetting(false)
-    }
-  }
 
   const recent = orders.slice(0, 5)
 
   return (
     <div className="space-y-6">
-      <div className="rounded-3xl border border-border bg-card p-6 shadow-sm">
-        <div className="flex flex-wrap items-center justify-between gap-4">
-          <div>
-            <h2 className="font-serif text-lg">Contrôle du chiffre d'affaires</h2>
-            <p className="text-xs text-muted-foreground">
-              Les commandes annulées ne sont jamais comptées. Réinitialisez le chiffre d'affaires à 0 pour repartir de zéro.
-            </p>
-          </div>
-          <button
-            onClick={() => setConfirming(true)}
-            className="inline-flex items-center gap-2 rounded-full border border-destructive/40 px-4 py-2 text-sm font-medium text-destructive hover:bg-destructive/10"
-          >
-            <RotateCcw className="size-4" /> Réinitialiser le chiffre d'affaires
-          </button>
-        </div>
-        {error && <p className="mt-3 text-sm text-destructive">{error}</p>}
-      </div>
-
-      {confirming && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-foreground/50 p-4" role="dialog" aria-modal="true">
-          <div className="w-full max-w-sm rounded-3xl bg-card p-6 shadow-xl">
-            <h3 className="font-serif text-xl">Réinitialiser le chiffre d'affaires ?</h3>
-            <p className="mt-2 text-sm text-muted-foreground">
-              Cela mettra le chiffre d'affaires total à 0. Toutes les commandes, sauf celles encore marquées comme{" "}
-              <span className="font-medium text-foreground">nouvelles</span>, ne compteront plus dans le chiffre
-              d'affaires. Cette action est irréversible.
-            </p>
-            <div className="mt-6 flex justify-end gap-3">
-              <button
-                onClick={() => setConfirming(false)}
-                disabled={resetting}
-                className="rounded-full border border-border px-5 py-2.5 text-sm hover:bg-secondary disabled:opacity-50"
-              >
-                Annuler
-              </button>
-              <button
-                onClick={confirmReset}
-                disabled={resetting}
-                className="rounded-full bg-destructive px-5 py-2.5 text-sm font-medium text-destructive-foreground disabled:opacity-50"
-              >
-                {resetting ? "Réinitialisation…" : "Oui, réinitialiser"}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
 
       {loading ? (
         <p className="rounded-3xl border border-dashed border-border p-10 text-center text-muted-foreground">Chargement des commandes…</p>
