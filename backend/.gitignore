@@ -46,7 +46,3 @@ node_modules
 .Python
 db.sqlite3
 db.sqlite3-journal
-
-
-back.zip
-front.zip

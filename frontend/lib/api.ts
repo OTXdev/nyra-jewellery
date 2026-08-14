@@ -9,9 +9,7 @@ import type {
 } from "./types"
 
 export const API_BASE = (process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000/api").replace(/\/$/, "")
-export const BACKEND_BASE = (
-  process.env.NEXT_PUBLIC_BACKEND_URL || "http://localhost:8000"
-).replace(/\/$/, "")
+
 export class ApiError extends Error {
   status: number
   errors?: unknown
@@ -72,16 +70,15 @@ let csrfCookieRequest: Promise<void> | null = null
  * can be echoed back in the `X-CSRFToken` header on unsafe requests. This
  * carries no secret — it only proves the request came from a page that
  * could read this site's cookies, which is the point of CSRF protection. */
-let csrfToken: string | null = null
-
 async function ensureCsrfCookie(): Promise<void> {
-  if (csrfToken) return
+  if (readCookie("csrftoken")) return
   if (!csrfCookieRequest) {
     csrfCookieRequest = fetch(`${API_BASE}/auth/csrf/`, { credentials: "include" })
-      .then((r) => r.json())
-      .then((data) => { csrfToken = data.csrfToken })
+      .then(() => undefined)
       .catch(() => undefined)
-      .finally(() => { csrfCookieRequest = null })
+      .finally(() => {
+        csrfCookieRequest = null
+      })
   }
   return csrfCookieRequest
 }

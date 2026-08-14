@@ -9,7 +9,6 @@ from rest_framework.parsers import FormParser, MultiPartParser, JSONParser
 from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
 from rest_framework.views import APIView
-from django.middleware.csrf import get_token  # add this
 from rest_framework_simplejwt.exceptions import InvalidToken, TokenError
 from rest_framework_simplejwt.serializers import TokenRefreshSerializer
 from rest_framework_simplejwt.views import TokenObtainPairView
@@ -142,11 +141,20 @@ class LogoutView(APIView):
 
 @method_decorator(ensure_csrf_cookie, name="dispatch")
 class CsrfTokenView(APIView):
+    """
+    GET /api/auth/csrf/ — has no purpose other than to make Django set the
+    (non-HttpOnly, JS-readable) `csrftoken` cookie via ensure_csrf_cookie.
+    The frontend calls this once before login/admin actions so it has a
+    CSRF token to echo back in the `X-CSRFToken` header on unsafe
+    (POST/PUT/PATCH/DELETE) requests — required because CookieJWTAuthentication
+    enforces CSRF checks whenever auth comes from the cookie.
+    """
+
     permission_classes = [AllowAny]
     authentication_classes = []
 
     def get(self, request):
-        return Response({"csrfToken": get_token(request)})
+        return Response({"detail": "CSRF cookie set."})
 
 # ---------------------------------------------------------------------------
 # Category / Collection — public read, staff write
