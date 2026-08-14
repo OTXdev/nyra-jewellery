@@ -3,6 +3,7 @@ import type { Metadata, Viewport } from 'next'
 import { Playfair_Display, Poppins } from 'next/font/google'
 import './globals.css'
 import { StoreProvider } from '@/components/store/store-provider'
+import { SITE_URL } from '@/lib/seo'
 
 const playfair = Playfair_Display({
   subsets: ['latin'],
@@ -18,6 +19,7 @@ const poppins = Poppins({
 })
 
 export const metadata: Metadata = {
+  metadataBase: new URL(SITE_URL),
   title: 'Nyra Jewellery — Bijoux modernes en acier inoxydable',
   description:
     'Découvrez Nyra Jewellery : bagues, colliers, bracelets et ensembles élégants en acier inoxydable moderne. Parcourez la collection, commandez, et laissez-nous gérer le reste.',
