@@ -3,7 +3,7 @@ services:
     name: nyra-backend
     runtime: python
     rootDir: backend
-    plan: starter
+    plan: free
     region: frankfurt
     buildCommand: "pip install -r requirements.txt && python manage.py collectstatic --noinput"
     preDeployCommand: "python manage.py migrate --noinput"
