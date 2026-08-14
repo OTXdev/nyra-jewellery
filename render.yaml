@@ -6,8 +6,7 @@ services:
     plan: free
     region: frankfurt
     buildCommand: "pip install -r requirements.txt && python manage.py collectstatic --noinput"
-    preDeployCommand: "python manage.py migrate --noinput"
-    startCommand: "gunicorn nyra.wsgi:application --bind 0.0.0.0:$PORT"
+    startCommand: "python manage.py migrate --noinput && gunicorn nyra.wsgi:application --bind 0.0.0.0:$PORT"
     healthCheckPath: /api/site-settings/
     envVars:
       - key: DJANGO_ENV
@@ -40,7 +39,3 @@ services:
         sync: false
       - key: JWT_COOKIE_SAMESITE
         sync: false
-      # TIME_ZONE and PAGE_SIZE are also read from the environment, but their
-      # code defaults (Africa/Algiers, 12) are already correct for this
-      # project, so they're intentionally left unset here rather than
-      # duplicated. Add them only if you want a different value.
