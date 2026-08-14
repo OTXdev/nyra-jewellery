@@ -1,6 +1,7 @@
 from django.conf import settings
 from django.db.models import Count, Q, Sum
 from django.utils.decorators import method_decorator
+from django.middleware.csrf import get_token
 from django.views.decorators.csrf import ensure_csrf_cookie
 from django_filters.rest_framework import DjangoFilterBackend
 from rest_framework import filters, generics, status, viewsets
@@ -142,19 +143,32 @@ class LogoutView(APIView):
 @method_decorator(ensure_csrf_cookie, name="dispatch")
 class CsrfTokenView(APIView):
     """
-    GET /api/auth/csrf/ — has no purpose other than to make Django set the
-    (non-HttpOnly, JS-readable) `csrftoken` cookie via ensure_csrf_cookie.
-    The frontend calls this once before login/admin actions so it has a
-    CSRF token to echo back in the `X-CSRFToken` header on unsafe
-    (POST/PUT/PATCH/DELETE) requests — required because CookieJWTAuthentication
-    enforces CSRF checks whenever auth comes from the cookie.
+    GET /api/auth/csrf/ — makes Django set the (non-HttpOnly) `csrftoken`
+    cookie via ensure_csrf_cookie, AND returns the same token value in the
+    JSON body.
+
+    Why the body copy matters: in production the frontend (vercel.app) and
+    backend (onrender.com) are different registrable domains. The cookie
+    the browser stores for onrender.com is correctly attached by the
+    browser to subsequent same-domain requests (that's normal cross-site
+    cookie behaviour with SameSite=None), but frontend JavaScript can never
+    read a cookie belonging to a different origin via `document.cookie` —
+    that's a same-origin restriction on cookie *visibility*, separate from
+    SameSite/CORS, which only govern whether the cookie is *sent*. Without
+    this body value, the frontend has no way to learn the token to echo
+    back in `X-CSRFToken`, and every unsafe request fails with "CSRF token
+    missing" even though the cookie is present and correctly sent. The
+    frontend calls this once and caches the returned value in memory to
+    echo back on POST/PUT/PATCH/DELETE requests — required because
+    CookieJWTAuthentication enforces CSRF checks whenever auth comes from
+    the cookie.
     """
 
     permission_classes = [AllowAny]
     authentication_classes = []
 
     def get(self, request):
-        return Response({"detail": "CSRF cookie set."})
+        return Response({"csrfToken": get_token(request)})
 
 # ---------------------------------------------------------------------------
 # Category / Collection — public read, staff write

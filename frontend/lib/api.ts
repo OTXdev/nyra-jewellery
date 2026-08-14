@@ -33,12 +33,6 @@ interface FetchOptions extends RequestInit {
 
 const UNSAFE_METHODS = new Set(["POST", "PUT", "PATCH", "DELETE"])
 
-function readCookie(name: string): string | null {
-  if (typeof document === "undefined") return null
-  const match = document.cookie.match(new RegExp(`(?:^|; )${name}=([^;]*)`))
-  return match ? decodeURIComponent(match[1]) : null
-}
-
 // Paths that must never trigger a refresh-and-retry themselves (avoids
 // infinite loops / refreshing in response to the refresh call's own 401).
 const AUTH_ENDPOINTS = new Set(["/auth/login/", "/auth/refresh/", "/auth/logout/", "/auth/csrf/"])
@@ -62,25 +56,41 @@ async function tryRefreshSession(): Promise<boolean> {
   return refreshRequest
 }
 
-// Caches the in-flight request so concurrent unsafe calls don't all fire
-// their own GET /auth/csrf/ before the cookie lands.
-let csrfCookieRequest: Promise<void> | null = null
+// In-memory cache of the current CSRF token value, plus the in-flight
+// fetch so concurrent unsafe calls don't all fire their own
+// GET /auth/csrf/ at once.
+//
+// Why not read it from document.cookie (as before): in production the
+// frontend (vercel.app) and backend (onrender.com) are different
+// registrable domains. The `csrftoken` cookie belongs to onrender.com —
+// the browser attaches it automatically to requests there, but JS running
+// on vercel.app can never read a cookie belonging to a different origin
+// via document.cookie (a same-origin restriction on cookie *visibility*,
+// separate from SameSite/CORS, which only govern whether the cookie is
+// *sent*). So instead, /auth/csrf/ additionally returns the token value in
+// its JSON body, which fetch() can read regardless of domain, and we cache
+// that value here.
+let csrfToken: string | null = null
+let csrfTokenRequest: Promise<string | null> | null = null
 
-/** Ensures the (JS-readable, non-HttpOnly) `csrftoken` cookie is set, so it
- * can be echoed back in the `X-CSRFToken` header on unsafe requests. This
- * carries no secret — it only proves the request came from a page that
- * could read this site's cookies, which is the point of CSRF protection. */
-async function ensureCsrfCookie(): Promise<void> {
-  if (readCookie("csrftoken")) return
-  if (!csrfCookieRequest) {
-    csrfCookieRequest = fetch(`${API_BASE}/auth/csrf/`, { credentials: "include" })
-      .then(() => undefined)
-      .catch(() => undefined)
+/** Ensures we have a CSRF token value to echo back in the `X-CSRFToken`
+ * header on unsafe requests. Carries no secret — it only proves the
+ * request came from a page that received this value from the API. */
+async function ensureCsrfToken(): Promise<string | null> {
+  if (csrfToken) return csrfToken
+  if (!csrfTokenRequest) {
+    csrfTokenRequest = fetch(`${API_BASE}/auth/csrf/`, { credentials: "include" })
+      .then((r) => (r.ok ? r.json() : null))
+      .then((data) => {
+        csrfToken = data?.csrfToken ?? null
+        return csrfToken
+      })
+      .catch(() => null)
       .finally(() => {
-        csrfCookieRequest = null
+        csrfTokenRequest = null
       })
   }
-  return csrfCookieRequest
+  return csrfTokenRequest
 }
 
 async function apiFetch(path: string, options: FetchOptions = {}, isRetry = false) {
@@ -88,10 +98,7 @@ async function apiFetch(path: string, options: FetchOptions = {}, isRetry = fals
   const isFormData = typeof FormData !== "undefined" && rest.body instanceof FormData
   const httpMethod = (method || "GET").toUpperCase()
 
-  if (UNSAFE_METHODS.has(httpMethod)) {
-    await ensureCsrfCookie()
-  }
-  const csrfToken = readCookie("csrftoken")
+  const csrfTokenValue = UNSAFE_METHODS.has(httpMethod) ? await ensureCsrfToken() : null
 
   const res = await fetch(`${API_BASE}${path}`, {
     ...rest,
@@ -101,7 +108,7 @@ async function apiFetch(path: string, options: FetchOptions = {}, isRetry = fals
     credentials: "include",
     headers: {
       ...(isFormData ? {} : { "Content-Type": "application/json" }),
-      ...(UNSAFE_METHODS.has(httpMethod) && csrfToken ? { "X-CSRFToken": csrfToken } : {}),
+      ...(csrfTokenValue ? { "X-CSRFToken": csrfTokenValue } : {}),
       ...(headers || {}),
     },
   })
