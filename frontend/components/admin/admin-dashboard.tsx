@@ -13,7 +13,6 @@ import {
   Package,
   Pencil,
   Plus,
-  RotateCcw,
   Settings,
   ShoppingCart,
   Trash2,

@@ -1,4 +1,3 @@
-
 from datetime import timedelta
 from pathlib import Path
 import os
@@ -73,6 +72,19 @@ else:
 
 ALLOWED_HOSTS = env_list("DJANGO_ALLOWED_HOSTS", "localhost,127.0.0.1")
 # HTTPS / production security
+#
+# Render (like most PaaS providers) terminates TLS at its edge load balancer
+# and forwards requests to the app over plain HTTP, adding an
+# X-Forwarded-Proto header to say what the original scheme was. Without this
+# setting, Django has no way to know the original request was HTTPS, which
+# breaks SECURE_SSL_REDIRECT (redirect loop: Django thinks every request —
+# including the one it just redirected to HTTPS — is still HTTP) and the
+# "is this request secure" checks used by *_COOKIE_SECURE. Safe to leave set
+# unconditionally: it only takes effect when the header is actually present,
+# and Render's proxy is the only thing that can set it for requests reaching
+# this app.
+SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
+
 SECURE_SSL_REDIRECT = env_bool(
     "SECURE_SSL_REDIRECT",
     default=not IS_DEVELOPMENT,
@@ -94,6 +106,12 @@ SECURE_HSTS_SECONDS = int(
         "0" if IS_DEVELOPMENT else "31536000",
     )
 )
+# Left off by default even in production: turning these on is a one-way
+# decision (subdomains-forced-HTTPS, and preload-list submission is very
+# hard to reverse) that depends on the final domain layout, so it's opt-in
+# via env var rather than assumed.
+SECURE_HSTS_INCLUDE_SUBDOMAINS = env_bool("SECURE_HSTS_INCLUDE_SUBDOMAINS", default=False)
+SECURE_HSTS_PRELOAD = env_bool("SECURE_HSTS_PRELOAD", default=False)
 
 # APPLICATIONS
 INSTALLED_APPS = [
@@ -267,7 +285,7 @@ if JWT_COOKIE_SAMESITE.lower() == "none":
 
 CSRF_TRUSTED_ORIGINS = env_list("CSRF_TRUSTED_ORIGINS", ",".join(CORS_ALLOWED_ORIGINS))
 CSRF_COOKIE_SAMESITE = JWT_COOKIE_SAMESITE
-CSRF_COOKIE_HTTPONLY = False  # must stay JS-readable so the frontend can echo it back
+CSRF_COOKIE_HTTPONLY = False 
 CSRF_HEADER_NAME = "HTTP_X_CSRFTOKEN"
 
 DATA_UPLOAD_MAX_MEMORY_SIZE = 5 * 1024 * 1024

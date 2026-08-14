@@ -39,6 +39,29 @@ function readCookie(name: string): string | null {
   return match ? decodeURIComponent(match[1]) : null
 }
 
+// Paths that must never trigger a refresh-and-retry themselves (avoids
+// infinite loops / refreshing in response to the refresh call's own 401).
+const AUTH_ENDPOINTS = new Set(["/auth/login/", "/auth/refresh/", "/auth/logout/", "/auth/csrf/"])
+
+// Dedupes concurrent refresh attempts so 5 admin calls that all 401 at once
+// only trigger a single POST /auth/refresh/.
+let refreshRequest: Promise<boolean> | null = null
+
+async function tryRefreshSession(): Promise<boolean> {
+  if (!refreshRequest) {
+    refreshRequest = fetch(`${API_BASE}/auth/refresh/`, {
+      method: "POST",
+      credentials: "include",
+    })
+      .then((r) => r.ok)
+      .catch(() => false)
+      .finally(() => {
+        refreshRequest = null
+      })
+  }
+  return refreshRequest
+}
+
 // Caches the in-flight request so concurrent unsafe calls don't all fire
 // their own GET /auth/csrf/ before the cookie lands.
 let csrfCookieRequest: Promise<void> | null = null
@@ -60,7 +83,7 @@ async function ensureCsrfCookie(): Promise<void> {
   return csrfCookieRequest
 }
 
-async function apiFetch(path: string, options: FetchOptions = {}) {
+async function apiFetch(path: string, options: FetchOptions = {}, isRetry = false) {
   const { token: _token, headers, method, ...rest } = options
   const isFormData = typeof FormData !== "undefined" && rest.body instanceof FormData
   const httpMethod = (method || "GET").toUpperCase()
@@ -82,6 +105,24 @@ async function apiFetch(path: string, options: FetchOptions = {}) {
       ...(headers || {}),
     },
   })
+
+  // The admin's access-token cookie can expire mid-session (default 60min)
+  // while the refresh cookie (7 days) is still valid. On a 401 from a
+  // non-auth endpoint, try one silent refresh-and-retry before giving up —
+  // this is what keeps a logged-in admin from being kicked to generic error
+  // toasts every time the access token lapses.
+  if (res.status === 401 && !isRetry && !AUTH_ENDPOINTS.has(path)) {
+    const refreshed = await tryRefreshSession()
+    if (refreshed) {
+      return apiFetch(path, options, true)
+    }
+    // Refresh failed too — the session is genuinely over. Let the admin
+    // dashboard know so it can drop back to the login screen instead of
+    // leaving stale UI up while every subsequent action silently 401s.
+    if (typeof window !== "undefined") {
+      window.dispatchEvent(new Event("nyra-admin-session-expired"))
+    }
+  }
 
   if (res.status === 204) return null
 
@@ -385,18 +426,6 @@ export async function updateSiteImage(
     token,
     body: form,
   })
-}
-
-/** Reset the admin revenue figure (marks all non-''new'' orders as excluded). */
-export async function resetAdminRevenue(token: string): Promise<AdminStats> {
-  const data = await apiFetch("/admin/stats/", { method: "POST", token })
-  return {
-    totalRevenue: data.total_revenue,
-    totalOrders: data.total_orders,
-    ordersByStatus: data.orders_by_status,
-    totalProducts: data.total_products,
-    unreadMessages: data.unread_messages,
-  }
 }
 
 // ---------------------------------------------------------------------------

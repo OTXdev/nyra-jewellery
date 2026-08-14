@@ -57,6 +57,19 @@ export function useAdminAuth() {
       .finally(() => setChecking(false))
   }, [])
 
+  // Raised by lib/api.ts when an access-token cookie expires mid-session
+  // and the follow-up silent refresh also fails (refresh cookie expired,
+  // revoked, or was never there). Drop back to the login screen instead of
+  // leaving stale admin UI up while further actions keep silently 401-ing.
+  useEffect(() => {
+    const onSessionExpired = () => {
+      setAuthedHint(false)
+      setToken(null)
+    }
+    window.addEventListener("nyra-admin-session-expired", onSessionExpired)
+    return () => window.removeEventListener("nyra-admin-session-expired", onSessionExpired)
+  }, [])
+
   const login = useCallback(async (username: string, password: string) => {
     await adminLogin(username, password)
     setAuthedHint(true)

@@ -1,3 +1,11 @@
+# v0 sandbox internal files
+__v0_runtime_loader.js
+__v0_devtools.tsx
+__v0_jsx-dev-runtime.ts
+.snowflake/
+.v0-trash/
+.vercel/
+
 __pycache__/
 *.pyc
 
@@ -17,3 +25,24 @@ venv/
 .venv/
 
 *.egg-info/
+
+
+# Common ignores
+node_modules
+.next/
+.DS_Store
+
+# Python / Django
+__pycache__/
+*.pyc
+*.
+# Common ignores
+node_modules
+.next/
+.DS_Store
+
+# Python / Django
+*.pyo
+.Python
+db.sqlite3
+db.sqlite3-journal

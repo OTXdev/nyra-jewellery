@@ -7,9 +7,24 @@ __v0_jsx-dev-runtime.ts
 .vercel/
 
 # Environment variables
-.env*.local
+.env
+.env.*
+!.env.example
 
 # Common ignores
 node_modules
 .next/
 .DS_Store
+
+# Python / Django
+__pycache__/
+*.pyc
+*.pyo
+*.egg-info/
+.Python
+db.sqlite3
+db.sqlite3-journal
+staticfiles/
+media/
+.venv/
+venv/
