@@ -1,0 +1,9 @@
+{
+  "trailingSlash": true,
+  "rewrites": [
+    {
+      "source": "/api/:path*",
+      "destination": "https://nyra-backend-a0qr.onrender.com/api/:path*"
+    }
+  ]
+}

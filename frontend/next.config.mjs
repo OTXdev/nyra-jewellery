@@ -1,16 +1,7 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  trailingSlash: true,
   images: {
     unoptimized: true,
-  },
-  async rewrites() {
-    return [
-      {
-        source: "/api/:path*",
-        destination: "https://nyra-backend-a0qr.onrender.com/api/:path*",
-      },
-    ]
   },
 }
 
