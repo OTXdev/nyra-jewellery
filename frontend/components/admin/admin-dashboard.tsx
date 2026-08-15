@@ -55,7 +55,7 @@ import { setSiteImages } from "@/lib/site-images"
 import type { Category, Order, OrderStatus, Product, Wilaya, } from "@/lib/types"
 import { cn } from "@/lib/utils"
 
-type Tab = "overview" | "orders" | "products" | "collections" | "settings"
+type Tab = "overview" | "orders" | "products" | "collections"| "delivery" | "settings"
 
 const STATUS_STYLES: Record<OrderStatus, string> = {
   new: "bg-accent/30 text-accent-foreground",
@@ -186,7 +186,9 @@ function Dashboard({ token, onLogout }: { token: string; onLogout: () => void })
     { id: "orders", label: "Commandes" },
     { id: "products", label: "Produits" },
     { id: "collections", label: "Collections" },
+    { id: "delivery", label: "Livraison" },
     { id: "settings", label: "Paramètres" },
+    
   ]
 
   return (
