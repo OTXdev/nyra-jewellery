@@ -260,6 +260,7 @@ function Dashboard({ token, onLogout }: { token: string; onLogout: () => void })
 {tab === "collections" && (
           <CollectionsPanel token={token} collections={collections} products={products} />
         )}
+        {tab === "delivery" && (<DeliveryPanel token={token} />)}
         {tab === "settings" && <SettingsPanel token={token} />}
       </div>
 
