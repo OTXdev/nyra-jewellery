@@ -42,31 +42,35 @@ export function Categories() {
   })
 
   return (
-    <div className="flex w-full items-stretch gap-3 sm:gap-4 lg:gap-6">
-      {items.map((c) => (
-        <Link
-          key={c.slug}
-          href={c.href}
-          className="group relative aspect-[3/4] min-w-0 flex-1 overflow-hidden rounded-3xl border border-border shadow-sm"
-        >
-          <Image
-            src={c.image}
-            alt={c.label}
-            fill
-            sizes="(max-width: 640px) 20vw, (max-width: 1024px) 20vw, 20vw"
-            className="object-cover transition-transform duration-700 group-hover:scale-105"
-          />
-          <div className="absolute inset-0 bg-gradient-to-t from-primary/70 via-primary/10 to-transparent" />
-          <div className="absolute inset-x-0 bottom-0 p-3 sm:p-4 lg:p-5">
-            <p className="font-serif text-sm font-medium leading-tight text-primary-foreground sm:text-lg lg:text-xl">
-              {c.label}
-            </p>
-            <p className="mt-0.5 hidden text-xs text-primary-foreground/80 opacity-0 transition-opacity duration-300 group-hover:opacity-100 sm:block sm:text-sm">
-              Acheter →
-            </p>
-          </div>
-        </Link>
-      ))}
+    <div className="relative">
+      <div className="no-scrollbar -mx-4 flex snap-x snap-mandatory gap-3 overflow-x-auto px-4 pb-1 sm:mx-0 sm:snap-none sm:items-stretch sm:overflow-visible sm:px-0 sm:gap-4 lg:gap-6">
+        {items.map((c) => (
+          <Link
+            key={c.slug}
+            href={c.href}
+            className="group relative aspect-[3/4] w-[30vw] max-w-[9.5rem] min-w-[7.5rem] flex-none snap-start overflow-hidden rounded-3xl ring-1 ring-border/70 shadow-sm transition-shadow duration-300 hover:shadow-lg sm:w-auto sm:max-w-none sm:min-w-0 sm:flex-1"
+          >
+            <Image
+              src={c.image}
+              alt={c.label}
+              fill
+              sizes="(max-width: 640px) 30vw, 20vw"
+              className="object-cover transition-transform duration-700 group-hover:scale-105"
+            />
+            <div className="absolute inset-0 bg-gradient-to-t from-primary/70 via-primary/10 to-transparent" />
+            <div className="absolute inset-x-0 bottom-0 p-3 sm:p-4 lg:p-5">
+              <p className="font-serif text-sm font-medium leading-tight text-primary-foreground sm:text-lg lg:text-xl">
+                {c.label}
+              </p>
+              <p className="mt-0.5 hidden text-xs text-primary-foreground/80 opacity-0 transition-opacity duration-300 group-hover:opacity-100 sm:block sm:text-sm">
+                Acheter →
+              </p>
+            </div>
+          </Link>
+        ))}
+      </div>
+      {/* Signals there's more to swipe past the visible edge, mobile only. */}
+      <div className="pointer-events-none absolute inset-y-0 right-0 w-8 bg-gradient-to-l from-background to-transparent sm:hidden" />
     </div>
   )
 }
