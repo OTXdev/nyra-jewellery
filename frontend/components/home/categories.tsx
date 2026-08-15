@@ -69,8 +69,6 @@ export function Categories() {
           </Link>
         ))}
       </div>
-      {/* Signals there's more to swipe past the visible edge, mobile only. */}
-      <div className="pointer-events-none absolute inset-y-0 right-0 w-8 bg-gradient-to-l from-background to-transparent sm:hidden" />
     </div>
   )
 }
