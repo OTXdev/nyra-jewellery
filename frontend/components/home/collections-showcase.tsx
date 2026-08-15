@@ -12,13 +12,11 @@ export function CollectionsShowcase() {
 
   return (
     <div className="grid gap-4 sm:gap-6 lg:grid-cols-2">
-      {collections.map((c, i) => (
-<Link
+      {collections.map((c) => (
+        <Link
           key={c.id}
           href={`/shop?collection=${encodeURIComponent(c.name)}`}
-          className={`group relative overflow-hidden rounded-3xl border border-border shadow-sm ${
-            i === 0 ? "lg:row-span-2 lg:aspect-auto" : ""
-          } aspect-[16/10] lg:aspect-auto lg:min-h-[15rem]`}
+          className="group relative aspect-[16/10] overflow-hidden rounded-3xl border border-border shadow-sm lg:aspect-auto lg:min-h-[15rem]"
         >
           <Image
             src={c.image || "/placeholder.svg"}
