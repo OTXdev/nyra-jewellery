@@ -24,10 +24,6 @@ export const metadata: Metadata = {
   description:
     'Découvrez Nyra Jewellery : bagues, colliers, bracelets et ensembles élégants en acier inoxydable moderne. Parcourez la collection, commandez, et laissez-nous gérer le reste.',
   generator: 'v0.app',
-  icons: {
-    icon: '/logo/logo.png',
-    apple: '/logo/logo.png',
-  },
   keywords: [
     'Nyra Jewellery',
     'bijoux en acier inoxydable',
@@ -64,4 +60,3 @@ export default function RootLayout({
     </html>
   )
 }
-
