@@ -251,13 +251,11 @@ class ProductImageViewSet(viewsets.ModelViewSet):
 # ---------------------------------------------------------------------------
 # Wilayas — public read only
 # ---------------------------------------------------------------------------
-
-class WilayaViewSet(viewsets.ReadOnlyModelViewSet):
+class WilayaViewSet(viewsets.ModelViewSet):
     queryset = Wilaya.objects.all()
     serializer_class = WilayaSerializer
-    permission_classes = [AllowAny]
+    permission_classes = [IsAdminOrReadOnly]
     pagination_class = None
-
 
 # ---------------------------------------------------------------------------
 # Orders
