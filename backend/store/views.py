@@ -341,6 +341,45 @@ class AdminOrderViewSet(viewsets.ReadOnlyModelViewSet):
             status=status.HTTP_200_OK,
         )
 
+# ---------------------------------------------------------------------------
+# Admin dashboard — statistics by wilaya
+# ---------------------------------------------------------------------------
+
+class AdminWilayaStatsView(APIView):
+    """
+    GET /api/admin/statistics/wilayas/
+
+    Returns the number of confirmed orders for each wilaya.
+    Admin only.
+    """
+
+    permission_classes = [IsStaffUser]
+
+    def get(self, request):
+        stats = (
+            Order.objects
+            .filter(status=Order.Status.CONFIRMED)
+            .values(
+                "wilaya__code",
+                "wilaya__name",
+            )
+            .annotate(
+                orders_count=Count("id")
+            )
+            .order_by("-orders_count", "wilaya__code")
+        )
+
+        return Response(
+            [
+                {
+                    "wilaya_code": row["wilaya__code"],
+                    "wilaya": row["wilaya__name"],
+                    "orders_count": row["orders_count"],
+                }
+                for row in stats
+            ],
+            status=status.HTTP_200_OK,
+        )
 
 # ---------------------------------------------------------------------------
 # Contact messages

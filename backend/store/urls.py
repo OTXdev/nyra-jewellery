@@ -35,6 +35,7 @@ urlpatterns = [
 
     # Admin
     path("admin/stats/", views.AdminStatsView.as_view(), name="admin-stats"),
+    path("admin/stats/wilayas/",views.AdminWilayaStatsView.as_view(),name="admin-wilaya-stats",),
     path("admin/account/", views.AdminAccountUpdateView.as_view(), name="admin-account"),
     path("admin/", include(admin_router.urls)),
 ]

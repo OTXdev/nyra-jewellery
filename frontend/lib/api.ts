@@ -212,9 +212,53 @@ export function mapApiWilaya(w: any): Wilaya {
     id: w.id,
     code: w.code,
     name: w.name,
-    deliveryFee: w.delivery_fee,
-    stopdeskFee: w.stopdesk_fee ?? null,
+    deliveryFee: Number(w.delivery_fee ?? 0),
+    stopdeskFee: w.stopdesk_fee != null ? Number(w.stopdesk_fee) : null,
   }
+}
+export async function createWilaya(
+  token: string,
+  data: {
+    code: string
+    name: string
+    delivery_fee: number
+    stopdesk_fee: number | null
+  },
+): Promise<Wilaya> {
+  const response = await apiFetch("/wilayas/", {
+    method: "POST",
+    token,
+    body: JSON.stringify(data),
+  })
+
+  return mapApiWilaya(response)
+}
+
+export async function fetchWilayas(): Promise<Wilaya[]> {
+  const data = await apiFetch("/wilayas/")
+
+  const list = Array.isArray(data)
+    ? data
+    : data?.results ?? []
+
+  return list.map(mapApiWilaya)
+}
+
+export async function updateWilaya(
+  token: string,
+  id: number,
+  payload: {
+    delivery_fee?: number
+    stopdesk_fee?: number | null
+  },
+): Promise<Wilaya> {
+  const data = await apiFetch(`/wilayas/${id}/`, {
+    method: "PATCH",
+    token,
+    body: JSON.stringify(payload),
+  })
+
+  return mapApiWilaya(data)
 }
 
 function mapApiOrder(o: any): Order {
@@ -321,11 +365,6 @@ export async function updateCollectionImage(token: string, slug: string, imageFi
   return mapApiCollection(data)
 }
 
-export async function fetchWilayas(): Promise<Wilaya[]> {
-  const data = await apiFetch("/wilayas/")
-  const list = Array.isArray(data) ? data : data.results
-  return (list || []).map(mapApiWilaya)
-}
 
 /**
  * Fetches all products (paginated on the backend) and flattens them into one

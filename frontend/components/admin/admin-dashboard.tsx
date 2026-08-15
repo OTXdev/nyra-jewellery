@@ -17,6 +17,7 @@ import {
   ShoppingCart,
   Trash2,
   User,
+  Truck,
 } from "lucide-react"
 import { useStore } from "@/components/store/store-provider"
 import { useAdminAuth, getAdminToken } from "@/lib/admin-auth"
@@ -32,6 +33,8 @@ import {
   fetchCollections,
   fetchProductImages,
   fetchSiteSettings,
+  fetchWilayas,
+  createWilaya,
   updateAdminAccount,
   updateCategoryImage,
   updateCollection,
@@ -39,6 +42,7 @@ import {
   updateOrderStatus as apiUpdateOrderStatus,
   updateSiteImage,
   updateSiteSettings,
+  updateWilaya,
   type AdminStats,
   type ApiCategory,
   type CollectionWritePayload,
@@ -48,7 +52,7 @@ import {
 import { CATEGORY_LABELS } from "@/lib/data"
 import { formatDZD } from "@/lib/format"
 import { setSiteImages } from "@/lib/site-images"
-import type { Category, Order, OrderStatus, Product } from "@/lib/types"
+import type { Category, Order, OrderStatus, Product, Wilaya, } from "@/lib/types"
 import { cn } from "@/lib/utils"
 
 type Tab = "overview" | "orders" | "products" | "collections" | "settings"
@@ -333,6 +337,994 @@ function Overview({
           </ul>
         </div>
       )}
+    </div>
+  )
+}
+
+// ---------------------------------------------------------------------------
+// Delivery Row
+// ---------------------------------------------------------------------------
+
+function DeliveryRow({
+  wilaya,
+  saving,
+  onSave,
+}: {
+  wilaya: Wilaya
+  saving: boolean
+  onSave: (
+    id: number,
+    deliveryFee: number,
+    stopdeskFee: number | null,
+  ) => Promise<void>
+}) {
+  const [homeFee, setHomeFee] = useState(
+    String(wilaya.deliveryFee ?? 0),
+  )
+
+  const [stopdeskFee, setStopdeskFee] = useState(
+    wilaya.stopdeskFee == null
+      ? ""
+      : String(wilaya.stopdeskFee),
+  )
+
+  const [editing, setEditing] = useState(false)
+
+  useEffect(() => {
+    setHomeFee(String(wilaya.deliveryFee ?? 0))
+
+    setStopdeskFee(
+      wilaya.stopdeskFee == null
+        ? ""
+        : String(wilaya.stopdeskFee),
+    )
+  }, [wilaya.deliveryFee, wilaya.stopdeskFee])
+
+  async function handleSave() {
+    const home = Number(homeFee)
+
+    const stopdesk =
+      stopdeskFee.trim() === ""
+        ? null
+        : Number(stopdeskFee)
+
+    if (!Number.isFinite(home) || home < 0) {
+      return
+    }
+
+    if (
+      stopdesk !== null &&
+      (!Number.isFinite(stopdesk) || stopdesk < 0)
+    ) {
+      return
+    }
+
+    await onSave(
+      wilaya.id,
+      home,
+      stopdesk,
+    )
+
+    setEditing(false)
+  }
+
+  function handleCancel() {
+    setEditing(false)
+
+    setHomeFee(
+      String(wilaya.deliveryFee ?? 0),
+    )
+
+    setStopdeskFee(
+      wilaya.stopdeskFee == null
+        ? ""
+        : String(wilaya.stopdeskFee),
+    )
+  }
+
+  return (
+    <tr className="hover:bg-secondary/20">
+
+      {/* Code */}
+      <td className="px-5 py-4 font-medium">
+        {wilaya.code}
+      </td>
+
+      {/* Wilaya */}
+      <td className="px-5 py-4">
+        {wilaya.name}
+      </td>
+
+      {/* Livraison à domicile */}
+      <td className="px-5 py-4">
+        {editing ? (
+          <div className="flex items-center gap-2">
+            <input
+              type="number"
+              min="0"
+              value={homeFee}
+              onChange={(e) =>
+                setHomeFee(e.target.value)
+              }
+              className="w-28 rounded-xl border border-border bg-background px-3 py-2 text-sm outline-none focus:border-primary"
+            />
+
+            <span className="text-xs text-muted-foreground">
+              DA
+            </span>
+          </div>
+        ) : (
+          <span>
+            {formatDZD(Number(homeFee))}
+          </span>
+        )}
+      </td>
+
+      {/* Stopdesk */}
+      <td className="px-5 py-4">
+        {editing ? (
+          <div className="flex items-center gap-2">
+            <input
+              type="number"
+              min="0"
+              value={stopdeskFee}
+              onChange={(e) =>
+                setStopdeskFee(e.target.value)
+              }
+              placeholder="—"
+              className="w-28 rounded-xl border border-border bg-background px-3 py-2 text-sm outline-none focus:border-primary"
+            />
+
+            <span className="text-xs text-muted-foreground">
+              DA
+            </span>
+          </div>
+        ) : (
+          <span>
+            {stopdeskFee === ""
+              ? "—"
+              : formatDZD(Number(stopdeskFee))}
+          </span>
+        )}
+      </td>
+
+      {/* Actions */}
+      <td className="px-5 py-4">
+        <div className="flex justify-end gap-2">
+
+          {editing ? (
+            <>
+              {/* Annuler */}
+              <button
+                type="button"
+                onClick={handleCancel}
+                disabled={saving}
+                className="rounded-full border border-border px-4 py-2 text-xs hover:bg-secondary disabled:opacity-50"
+              >
+                Annuler
+              </button>
+
+              {/* Enregistrer */}
+              <button
+                type="button"
+                onClick={handleSave}
+                disabled={saving}
+                className="rounded-full bg-primary px-4 py-2 text-xs text-primary-foreground hover:opacity-90 disabled:opacity-50"
+              >
+                {saving
+                  ? "Enregistrement…"
+                  : "Enregistrer"}
+              </button>
+            </>
+          ) : (
+            <button
+              type="button"
+              onClick={() => setEditing(true)}
+              className="inline-flex items-center gap-2 rounded-full border border-border px-4 py-2 text-xs hover:bg-secondary"
+            >
+              <Pencil className="size-3.5" />
+              Modifier
+            </button>
+          )}
+
+        </div>
+      </td>
+
+    </tr>
+  )
+}
+
+
+// ---------------------------------------------------------------------------
+// Wilaya Sales Statistics
+// ---------------------------------------------------------------------------
+
+function WilayaSalesStats({
+  token,
+}: {
+  token: string
+}) {
+  const [orders, setOrders] = useState<Order[]>([])
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
+
+  useEffect(() => {
+    async function loadStats() {
+      try {
+        setLoading(true)
+        setError(null)
+
+        // Seulement les commandes confirmées
+        const data = await fetchAdminOrders(
+          token,
+          "confirmed",
+        )
+
+        setOrders(data)
+      } catch (err) {
+        setError(
+          err instanceof Error
+            ? err.message
+            : "Impossible de charger les statistiques.",
+        )
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    loadStats()
+  }, [token])
+
+  // -------------------------------------------------------------------------
+  // Calcul des statistiques par wilaya
+  // -------------------------------------------------------------------------
+
+  const stats = useMemo(() => {
+    const grouped: Record<
+      string,
+      {
+        wilaya: string
+        orders: number
+        revenue: number
+      }
+    > = {}
+
+    for (const order of orders) {
+      const wilaya =
+        order.wilaya?.trim() || "Inconnue"
+
+      if (!grouped[wilaya]) {
+        grouped[wilaya] = {
+          wilaya,
+          orders: 0,
+          revenue: 0,
+        }
+      }
+
+      grouped[wilaya].orders += 1
+      grouped[wilaya].revenue += Number(
+        order.total || 0,
+      )
+    }
+
+    // Plus de commandes → moins de commandes
+    return Object.values(grouped).sort(
+      (a, b) => b.orders - a.orders,
+    )
+  }, [orders])
+
+  return (
+    <div className="rounded-3xl border border-border bg-card shadow-sm">
+
+      {/* Header */}
+      <div className="border-b border-border p-6">
+
+        <div className="flex items-center justify-between gap-4">
+
+          <div>
+            <h3 className="font-serif text-xl">
+              Statistiques par wilaya
+            </h3>
+
+            <p className="mt-1 text-sm text-muted-foreground">
+              Classement des wilayas selon le
+              nombre de commandes confirmées.
+            </p>
+          </div>
+
+          <div className="rounded-full bg-primary/10 px-4 py-2 text-xs font-medium text-primary">
+            {orders.length} commandes confirmées
+          </div>
+
+        </div>
+
+      </div>
+
+      {/* Loading */}
+      {loading ? (
+
+        <div className="p-10 text-center text-sm text-muted-foreground">
+          Chargement des statistiques…
+        </div>
+
+      ) : error ? (
+
+        /* Error */
+        <div className="p-6">
+          <div className="rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+            {error}
+          </div>
+        </div>
+
+      ) : stats.length === 0 ? (
+
+        /* Empty */
+        <div className="p-10 text-center text-sm text-muted-foreground">
+          Aucune commande confirmée pour le moment.
+        </div>
+
+      ) : (
+
+        /* Table */
+        <div className="overflow-x-auto">
+
+          <table className="w-full text-sm">
+
+            <thead className="border-b border-border bg-secondary/50">
+
+              <tr>
+
+                <th className="px-6 py-4 text-left font-medium">
+                  #
+                </th>
+
+                <th className="px-6 py-4 text-left font-medium">
+                  Wilaya
+                </th>
+
+                <th className="px-6 py-4 text-center font-medium">
+                  Commandes confirmées
+                </th>
+
+                <th className="px-6 py-4 text-right font-medium">
+                  Chiffre d'affaires
+                </th>
+
+              </tr>
+
+            </thead>
+
+            <tbody className="divide-y divide-border">
+
+              {stats.map((stat, index) => (
+
+                <tr
+                  key={stat.wilaya}
+                  className="hover:bg-secondary/20"
+                >
+
+                  {/* Classement */}
+                  <td className="px-6 py-4">
+
+                    <span
+                      className={
+                        index < 3
+                          ? "flex size-8 items-center justify-center rounded-full bg-primary/10 font-medium text-primary"
+                          : "flex size-8 items-center justify-center rounded-full bg-secondary text-muted-foreground"
+                      }
+                    >
+                      {index + 1}
+                    </span>
+
+                  </td>
+
+                  {/* Wilaya */}
+                  <td className="px-6 py-4">
+                    <span className="font-medium">
+                      {stat.wilaya}
+                    </span>
+                  </td>
+
+                  {/* Commandes */}
+                  <td className="px-6 py-4 text-center">
+                    <span className="font-medium">
+                      {stat.orders}
+                    </span>
+                  </td>
+
+                  {/* Chiffre d'affaires */}
+                  <td className="px-6 py-4 text-right">
+                    <span className="font-medium">
+                      {formatDZD(stat.revenue)}
+                    </span>
+                  </td>
+
+                </tr>
+
+              ))}
+
+            </tbody>
+
+          </table>
+
+        </div>
+
+      )}
+
+    </div>
+  )
+}
+
+
+// ---------------------------------------------------------------------------
+// Delivery Panel
+// ---------------------------------------------------------------------------
+
+function DeliveryPanel({
+  token,
+}: {
+  token: string
+}) {
+  const [wilayas, setWilayas] = useState<Wilaya[]>([])
+  const [loading, setLoading] = useState(true)
+  const [saving, setSaving] = useState<number | null>(null)
+  const [search, setSearch] = useState("")
+
+  const [message, setMessage] =
+    useState<string | null>(null)
+
+  const [error, setError] =
+    useState<string | null>(null)
+
+  // -------------------------------------------------------------------------
+  // Ajout d'une wilaya
+  // -------------------------------------------------------------------------
+
+  const [adding, setAdding] = useState(false)
+  const [creating, setCreating] = useState(false)
+
+  const [newCode, setNewCode] = useState("")
+  const [newName, setNewName] = useState("")
+  const [newHomeFee, setNewHomeFee] = useState("")
+  const [newStopdeskFee, setNewStopdeskFee] =
+    useState("")
+
+  // -------------------------------------------------------------------------
+  // Charger les wilayas
+  // -------------------------------------------------------------------------
+
+  useEffect(() => {
+    loadWilayas()
+  }, [])
+
+  async function loadWilayas() {
+    try {
+      setLoading(true)
+      setError(null)
+
+      const data = await fetchWilayas()
+
+      setWilayas(data)
+    } catch (err) {
+      setError(
+        err instanceof Error
+          ? err.message
+          : "Impossible de charger les wilayas.",
+      )
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  // -------------------------------------------------------------------------
+  // Sauvegarder les prix
+  // -------------------------------------------------------------------------
+
+  async function handleSave(
+    id: number,
+    deliveryFee: number,
+    stopdeskFee: number | null,
+  ) {
+    try {
+      setSaving(id)
+      setMessage(null)
+      setError(null)
+
+      const updated = await updateWilaya(
+        token,
+        id,
+        {
+          delivery_fee: deliveryFee,
+          stopdesk_fee: stopdeskFee,
+        },
+      )
+
+      setWilayas((prev) =>
+        prev.map((wilaya) =>
+          wilaya.id === id
+            ? updated
+            : wilaya,
+        ),
+      )
+
+      setMessage(
+        "Prix de livraison mis à jour avec succès.",
+      )
+
+      setTimeout(() => {
+        setMessage(null)
+      }, 3000)
+
+    } catch (err) {
+      setError(
+        err instanceof Error
+          ? err.message
+          : "Impossible de modifier le prix.",
+      )
+    } finally {
+      setSaving(null)
+    }
+  }
+
+  // -------------------------------------------------------------------------
+  // Créer une wilaya
+  // -------------------------------------------------------------------------
+
+  async function handleCreate() {
+    const code = newCode.trim()
+    const name = newName.trim()
+
+    const home = Number(newHomeFee)
+
+    const stopdesk =
+      newStopdeskFee.trim() === ""
+        ? null
+        : Number(newStopdeskFee)
+
+    // Code
+    if (!code) {
+      setError(
+        "Le code de la wilaya est obligatoire.",
+      )
+      return
+    }
+
+    if (code.length !== 2) {
+      setError(
+        "Le code de la wilaya doit contenir 2 caractères.",
+      )
+      return
+    }
+
+    // Nom
+    if (!name) {
+      setError(
+        "Le nom de la wilaya est obligatoire.",
+      )
+      return
+    }
+
+    // Tarif domicile
+    if (!Number.isFinite(home) || home < 0) {
+      setError(
+        "Le prix de livraison à domicile est invalide.",
+      )
+      return
+    }
+
+    // Tarif stopdesk
+    if (
+      stopdesk !== null &&
+      (!Number.isFinite(stopdesk) ||
+        stopdesk < 0)
+    ) {
+      setError(
+        "Le prix Stopdesk est invalide.",
+      )
+      return
+    }
+
+    try {
+      setCreating(true)
+      setMessage(null)
+      setError(null)
+
+      const created = await createWilaya(
+        token,
+        {
+          code,
+          name,
+          delivery_fee: home,
+          stopdesk_fee: stopdesk,
+        },
+      )
+
+      setWilayas((prev) =>
+        [...prev, created].sort(
+          (a, b) =>
+            a.code.localeCompare(b.code),
+        ),
+      )
+
+      // Reset
+      setNewCode("")
+      setNewName("")
+      setNewHomeFee("")
+      setNewStopdeskFee("")
+
+      setAdding(false)
+
+      setMessage(
+        "Wilaya ajoutée avec succès.",
+      )
+
+      setTimeout(() => {
+        setMessage(null)
+      }, 3000)
+
+    } catch (err) {
+      setError(
+        err instanceof Error
+          ? err.message
+          : "Impossible de créer la wilaya.",
+      )
+    } finally {
+      setCreating(false)
+    }
+  }
+
+  // -------------------------------------------------------------------------
+  // Recherche
+  // -------------------------------------------------------------------------
+
+  const filteredWilayas = useMemo(() => {
+    const value =
+      search.trim().toLowerCase()
+
+    if (!value) {
+      return wilayas
+    }
+
+    return wilayas.filter(
+      (wilaya) =>
+        wilaya.name
+          .toLowerCase()
+          .includes(value) ||
+        wilaya.code
+          .toLowerCase()
+          .includes(value),
+    )
+  }, [wilayas, search])
+
+  // -------------------------------------------------------------------------
+  // Interface
+  // -------------------------------------------------------------------------
+
+  return (
+    <div className="space-y-6">
+
+      {/* Titre */}
+      <div>
+        <h2 className="font-serif text-2xl">
+          Livraison
+        </h2>
+
+        <p className="mt-1 text-sm text-muted-foreground">
+          Gérez les prix de livraison pour les wilayas.
+        </p>
+      </div>
+
+      {/* Message succès */}
+      {message && (
+        <div className="rounded-2xl border border-green-200 bg-green-50 px-4 py-3 text-sm text-green-700">
+          {message}
+        </div>
+      )}
+
+      {/* Message erreur */}
+      {error && (
+        <div className="rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+          {error}
+        </div>
+      )}
+
+      {/* Recherche + Ajouter */}
+      <div className="rounded-3xl border border-border bg-card p-5 shadow-sm">
+
+        <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+
+          <div>
+            <h3 className="font-medium">
+              Tarifs de livraison
+            </h3>
+
+            <p className="mt-1 text-xs text-muted-foreground">
+              Société de livraison : votre société actuelle
+            </p>
+          </div>
+
+          <div className="flex flex-col gap-2 sm:flex-row">
+
+            {/* Recherche */}
+            <input
+              type="text"
+              value={search}
+              onChange={(e) =>
+                setSearch(e.target.value)
+              }
+              placeholder="Rechercher une wilaya..."
+              className="w-full rounded-full border border-border bg-background px-4 py-2 text-sm outline-none focus:border-primary md:w-64"
+            />
+
+            {/* Ajouter */}
+            <button
+              type="button"
+              onClick={() => {
+                setAdding(true)
+                setError(null)
+                setMessage(null)
+              }}
+              className="rounded-full bg-primary px-5 py-2 text-sm text-primary-foreground hover:opacity-90"
+            >
+              + Ajouter une wilaya
+            </button>
+
+          </div>
+
+        </div>
+
+      </div>
+
+      {/* Formulaire d'ajout */}
+      {adding && (
+        <div className="rounded-3xl border border-border bg-card p-6 shadow-sm">
+
+          <div className="mb-5">
+
+            <h3 className="font-medium">
+              Ajouter une wilaya
+            </h3>
+
+            <p className="mt-1 text-sm text-muted-foreground">
+              Ajoutez la wilaya et ses tarifs de livraison.
+            </p>
+
+          </div>
+
+          <div className="grid gap-4 md:grid-cols-4">
+
+            {/* Code */}
+            <div>
+              <label className="mb-2 block text-xs font-medium">
+                Code
+              </label>
+
+              <input
+                type="text"
+                maxLength={2}
+                value={newCode}
+                onChange={(e) =>
+                  setNewCode(e.target.value)
+                }
+                placeholder="01"
+                className="w-full rounded-xl border border-border bg-background px-3 py-2 text-sm uppercase outline-none focus:border-primary"
+              />
+            </div>
+
+            {/* Wilaya */}
+            <div>
+              <label className="mb-2 block text-xs font-medium">
+                Wilaya
+              </label>
+
+              <input
+                type="text"
+                value={newName}
+                onChange={(e) =>
+                  setNewName(e.target.value)
+                }
+                placeholder="Adrar"
+                className="w-full rounded-xl border border-border bg-background px-3 py-2 text-sm outline-none focus:border-primary"
+              />
+            </div>
+
+            {/* Domicile */}
+            <div>
+              <label className="mb-2 block text-xs font-medium">
+                À domicile
+              </label>
+
+              <div className="flex items-center gap-2">
+
+                <input
+                  type="number"
+                  min="0"
+                  value={newHomeFee}
+                  onChange={(e) =>
+                    setNewHomeFee(e.target.value)
+                  }
+                  placeholder="500"
+                  className="w-full rounded-xl border border-border bg-background px-3 py-2 text-sm outline-none focus:border-primary"
+                />
+
+                <span className="text-xs text-muted-foreground">
+                  DA
+                </span>
+
+              </div>
+            </div>
+
+            {/* Stopdesk */}
+            <div>
+              <label className="mb-2 block text-xs font-medium">
+                Stopdesk
+              </label>
+
+              <div className="flex items-center gap-2">
+
+                <input
+                  type="number"
+                  min="0"
+                  value={newStopdeskFee}
+                  onChange={(e) =>
+                    setNewStopdeskFee(e.target.value)
+                  }
+                  placeholder="300"
+                  className="w-full rounded-xl border border-border bg-background px-3 py-2 text-sm outline-none focus:border-primary"
+                />
+
+                <span className="text-xs text-muted-foreground">
+                  DA
+                </span>
+
+              </div>
+            </div>
+
+          </div>
+
+          {/* Actions */}
+          <div className="mt-5 flex justify-end gap-2">
+
+            {/* Annuler */}
+            <button
+              type="button"
+              onClick={() => {
+                setAdding(false)
+                setNewCode("")
+                setNewName("")
+                setNewHomeFee("")
+                setNewStopdeskFee("")
+                setError(null)
+              }}
+              disabled={creating}
+              className="rounded-full border border-border px-5 py-2 text-xs hover:bg-secondary disabled:opacity-50"
+            >
+              Annuler
+            </button>
+
+            {/* Ajouter */}
+            <button
+              type="button"
+              onClick={handleCreate}
+              disabled={creating}
+              className="rounded-full bg-primary px-5 py-2 text-xs text-primary-foreground hover:opacity-90 disabled:opacity-50"
+            >
+              {creating
+                ? "Ajout en cours…"
+                : "Ajouter la wilaya"}
+            </button>
+
+          </div>
+
+        </div>
+      )}
+
+      {/* Chargement */}
+      {loading ? (
+
+        <div className="rounded-3xl border border-dashed border-border p-10 text-center text-muted-foreground">
+          Chargement des wilayas…
+        </div>
+
+      ) : filteredWilayas.length === 0 ? (
+
+        <div className="rounded-3xl border border-dashed border-border p-10 text-center text-muted-foreground">
+          Aucune wilaya trouvée.
+        </div>
+
+      ) : (
+
+        /* Tableau */
+        <div className="overflow-hidden rounded-3xl border border-border bg-card shadow-sm">
+
+          <div className="overflow-x-auto">
+
+            <table className="w-full min-w-[750px] text-sm">
+
+              <thead className="border-b border-border bg-secondary/50">
+
+                <tr>
+
+                  <th className="px-5 py-4 text-left font-medium">
+                    Code
+                  </th>
+
+                  <th className="px-5 py-4 text-left font-medium">
+                    Wilaya
+                  </th>
+
+                  <th className="px-5 py-4 text-left font-medium">
+                    À domicile
+                  </th>
+
+                  <th className="px-5 py-4 text-left font-medium">
+                    Stopdesk
+                  </th>
+
+                  <th className="px-5 py-4 text-right font-medium">
+                    Action
+                  </th>
+
+                </tr>
+
+              </thead>
+
+              <tbody className="divide-y divide-border">
+
+                {filteredWilayas.map(
+                  (wilaya) => (
+                    <DeliveryRow
+                      key={wilaya.id}
+                      wilaya={wilaya}
+                      saving={
+                        saving === wilaya.id
+                      }
+                      onSave={handleSave}
+                    />
+                  ),
+                )}
+
+              </tbody>
+
+            </table>
+
+          </div>
+
+        </div>
+      )}
+
+      {/* Information */}
+      <div className="rounded-3xl border border-border bg-secondary/30 p-5">
+
+        <div className="flex gap-3">
+
+          <Truck className="mt-0.5 size-5 text-primary" />
+
+          <div>
+
+            <p className="font-medium">
+              Gestion des tarifs
+            </p>
+
+            <p className="mt-1 text-sm text-muted-foreground">
+              Les modifications sont enregistrées
+              directement dans la base de données.
+              Le client verra automatiquement le
+              nouveau prix lors de sa commande.
+            </p>
+
+          </div>
+
+        </div>
+
+      </div>
+
+      {/* ------------------------------------------------------------------ */}
+      {/* Statistiques des ventes par wilaya                                 */}
+      {/* ------------------------------------------------------------------ */}
+
+      <WilayaSalesStats token={token} />
+
     </div>
   )
 }
