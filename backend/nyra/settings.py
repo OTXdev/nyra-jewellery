@@ -120,6 +120,7 @@ INSTALLED_APPS = [
 
     "corsheaders",
     "django_filters",
+    "axes",  
     # Local
     "store",
 ]
@@ -132,9 +133,21 @@ MIDDLEWARE = [
     "django.middleware.common.CommonMiddleware",
     "django.middleware.csrf.CsrfViewMiddleware",
     "django.contrib.auth.middleware.AuthenticationMiddleware",
+    "axes.middleware.AxesMiddleware",
     "django.contrib.messages.middleware.MessageMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
 ]
+
+AUTHENTICATION_BACKENDS = [
+    "axes.backends.AxesStandaloneBackend",  
+    "django.contrib.auth.backends.ModelBackend",
+]
+
+AXES_FAILURE_LIMIT = 5            
+AXES_COOLOFF_TIME = 1          
+AXES_LOCKOUT_PARAMETERS = ["ip_address", "username"]  
+AXES_RESET_ON_SUCCESS = True  
+
 
 ROOT_URLCONF = "nyra.urls"
 

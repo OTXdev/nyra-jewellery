@@ -14,3 +14,4 @@ sqlparse==0.5.5
 tzdata==2026.3
 imagekitio==5.8.0
 whitenoise==6.12.0
+django-axes==7.0.2
