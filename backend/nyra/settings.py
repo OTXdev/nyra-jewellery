@@ -259,6 +259,7 @@ REST_FRAMEWORK = {
         "staff_login": "5/min",
         "order_create": "10/min",
         "contact_create": "10/min",
+        "token_refresh": "30/min",
     },
     "EXCEPTION_HANDLER": "store.exceptions.custom_exception_handler",
 }

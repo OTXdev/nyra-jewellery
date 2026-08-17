@@ -83,7 +83,7 @@ class CookieTokenRefreshView(APIView):
 
     permission_classes = [AllowAny]
     authentication_classes = []
-    throttle_scope = None
+    throttle_scope = "token_refresh"
 
     def post(self, request, *args, **kwargs):
         raw_refresh = request.COOKIES.get(settings.JWT_REFRESH_COOKIE)
