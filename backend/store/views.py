@@ -44,6 +44,8 @@ from .serializers import (
     WilayaSerializer,
 )
 
+from django.views.decorators.cache import never_cache
+
 
 # ---------------------------------------------------------------------------
 # Auth
@@ -270,6 +272,7 @@ class OrderCreateView(generics.CreateAPIView):
     throttle_scope = "order_create"
 
 
+@method_decorator(never_cache, name="dispatch")
 class AdminOrderViewSet(viewsets.ReadOnlyModelViewSet):
     """Admin: list/retrieve orders, plus a status-update action."""
 
@@ -342,7 +345,7 @@ class AdminOrderViewSet(viewsets.ReadOnlyModelViewSet):
 # ---------------------------------------------------------------------------
 # Admin dashboard — statistics by wilaya
 # ---------------------------------------------------------------------------
-
+@method_decorator(never_cache, name="dispatch")
 class AdminWilayaStatsView(APIView):
     """
     GET /api/admin/statistics/wilayas/
@@ -391,7 +394,7 @@ class ContactMessageCreateView(generics.CreateAPIView):
     permission_classes = [AllowAny]
     throttle_scope = "contact_create"
 
-
+@method_decorator(never_cache, name="dispatch")
 class AdminContactMessageViewSet(viewsets.ReadOnlyModelViewSet):
     queryset = ContactMessage.objects.all()
     serializer_class = ContactMessageSerializer
@@ -410,7 +413,7 @@ class AdminContactMessageViewSet(viewsets.ReadOnlyModelViewSet):
 # ---------------------------------------------------------------------------
 # Admin dashboard stats
 # ---------------------------------------------------------------------------
-
+@method_decorator(never_cache, name="dispatch")
 class AdminStatsView(APIView):
     permission_classes = [IsStaffUser]
 
@@ -483,7 +486,7 @@ class SiteSettingsView(APIView):
 # ---------------------------------------------------------------------------
 # Admin account management
 # ---------------------------------------------------------------------------
-
+@method_decorator(never_cache, name="dispatch")
 class AdminAccountUpdateView(APIView):
     """
     PATCH /api/admin/account/ — lets the logged-in admin change their
