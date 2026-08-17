@@ -251,9 +251,9 @@ REST_FRAMEWORK = {
         "rest_framework.parsers.MultiPartParser",
         "rest_framework.parsers.FormParser",
     ),
-   
+     
     "DEFAULT_THROTTLE_CLASSES": (
-        "rest_framework.throttling.ScopedRateThrottle",
+        "store.throttling.CloudflareAwareScopedRateThrottle",
     ),
     "DEFAULT_THROTTLE_RATES": {
         "staff_login": "5/min",
