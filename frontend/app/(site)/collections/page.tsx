@@ -4,10 +4,10 @@ import Link from "next/link"
 import { ArrowRight } from "lucide-react"
 import { PageHeader } from "@/components/layout/page-header"
 import { mapApiCollection } from "@/lib/api"
+export const dynamic = "force-dynamic"
 
 const API_BASE = (process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000/api").replace(/\/$/, "")
 
-export const dynamic = "force-dynamic"
 
 export const metadata: Metadata = {
   title: "Collections",

@@ -1,7 +1,7 @@
 import type { Metadata } from "next"
 import { Suspense } from "react"
 import { OrderConfirmation } from "@/components/order/order-confirmation"
-
+export const dynamic = "force-dynamic"
 export const metadata: Metadata = {
   title: "Commande confirmée",
   description: "Votre commande Nyra Jewellery a bien été reçue.",

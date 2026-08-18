@@ -1,6 +1,6 @@
 import type { Metadata } from "next"
 import { ProductDetail } from "@/components/product/product-detail"
-
+export const dynamic = "force-dynamic"
 const API_BASE = (process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000/api").replace(/\/$/, "")
 
 interface PageProps {
@@ -9,7 +9,7 @@ interface PageProps {
 
 // No generateStaticParams: the catalog is dynamic now, so product pages
 // render on request instead of being pre-built at build time.
-export const dynamic = "force-dynamic"
+
 
 async function getProduct(slug: string) {
   try {
