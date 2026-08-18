@@ -23,7 +23,7 @@ export function middleware(request: NextRequest) {
 
   const requestHeaders = new Headers(request.headers)
   requestHeaders.set('x-nonce', nonce)
-  requestHeaders.set('Content-Security-Policy-Report-Only', cspHeader)
+  requestHeaders.set('Content-Security-Policy', cspHeader)
 
   const response = NextResponse.next({
     request: {
@@ -35,7 +35,7 @@ export function middleware(request: NextRequest) {
   // Report-Only mode, just reports on). Setting it on requestHeaders
   // above only makes it visible to Next's internal rendering — this
   // second line is the one the browser receives.
-  response.headers.set('Content-Security-Policy-Report-Only', cspHeader)
+  response.headers.set('Content-Security-Policy', cspHeader)
 
   return response
 }
