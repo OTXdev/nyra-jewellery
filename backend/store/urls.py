@@ -31,6 +31,7 @@ urlpatterns = [
     path("orders/", views.OrderCreateView.as_view(), name="order-create"),
     path("contact/", views.ContactMessageCreateView.as_view(), name="contact-create"),
     path("site-settings/", views.SiteSettingsView.as_view(), name="site-settings"),
+    path("debug/ip/", views.DebugIPView.as_view(), name="debug-ip"),
     path("", include(public_router.urls)),
 
     # Admin
