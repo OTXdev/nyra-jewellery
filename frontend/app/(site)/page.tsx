@@ -10,7 +10,7 @@ import { DeliveryOffers } from '@/components/marketing/delivery-banner'
 import { ProductGrid } from '@/components/product/product-grid'
 import { useStore } from '@/components/store/store-provider'
 import { SectionHeading } from '@/components/ui/section-heading'
-
+export const dynamic = "force-dynamic"
 function ViewAll({ href }: { href: string }) {
   return (
     <Link

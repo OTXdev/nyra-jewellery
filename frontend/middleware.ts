@@ -8,7 +8,7 @@ export function middleware(request: NextRequest) {
     default-src 'none';
     script-src 'self' 'nonce-${nonce}' 'strict-dynamic';
     style-src 'self';
-    img-src 'self' https://ik.imagekit.io;
+    img-src 'self' https://ik.imagekit.io data:;
     font-src 'self';
     connect-src 'self' https://nyra-backend-a0qr.onrender.com https://vitals.vercel-insights.com;
     frame-src 'none';
