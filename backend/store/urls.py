@@ -1,6 +1,6 @@
 from django.urls import include, path
 from rest_framework.routers import DefaultRouter
-from backend.store import debug_ip_view
+from . import debug_ip_view
 
 from . import views
 
