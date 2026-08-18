@@ -3,7 +3,7 @@ import { Mail, MapPin, MessageCircle, Phone } from "lucide-react"
 import { PageHeader } from "@/components/layout/page-header"
 import { ContactForm } from "@/components/contact/contact-form"
 import { BRAND } from "@/lib/data"
-
+export const dynamic = "force-dynamic"
 export const metadata: Metadata = {
   title: "Contactez-nous",
   description: "Contactez Nyra Jewellery. Rejoignez-nous par WhatsApp, téléphone ou email.",

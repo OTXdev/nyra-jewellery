@@ -2,7 +2,7 @@ import type { Metadata } from "next"
 import { Suspense } from "react"
 import { PageHeader } from "@/components/layout/page-header"
 import { ShopBrowser } from "@/components/shop/shop-browser"
-
+export const dynamic = "force-dynamic"
 export const metadata: Metadata = {
   title: "Tous les bijoux",
   description:

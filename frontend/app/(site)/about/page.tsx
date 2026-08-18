@@ -8,7 +8,7 @@ import { PageHeader } from "@/components/layout/page-header"
 import { SectionHeading } from "@/components/ui/section-heading"
 import { fetchSiteSettings } from "@/lib/api"
 import { setSiteImages, useSiteImages } from "@/lib/site-images"
-
+export const dynamic = "force-dynamic"
 const VALUES = [
   { icon: Gem, title: "Sélection soignée", text: "Chaque pièce est choisie avec soin pour sa qualité, son design et ses finitions raffinées." },
   { icon: HandHeart, title: "Élégance au quotidien", text: "Des créations modernes et intemporelles pensées pour accompagner votre style en toute occasion." },
