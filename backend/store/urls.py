@@ -1,6 +1,5 @@
 from django.urls import include, path
 from rest_framework.routers import DefaultRouter
-from . import debug_ip_view
 
 from . import views
 
@@ -32,7 +31,6 @@ urlpatterns = [
     path("orders/", views.OrderCreateView.as_view(), name="order-create"),
     path("contact/", views.ContactMessageCreateView.as_view(), name="contact-create"),
     path("site-settings/", views.SiteSettingsView.as_view(), name="site-settings"),
-    path("debug/ip/", debug_ip_view.DebugIPView.as_view(), name="debug-ip"),
     path("", include(public_router.urls)),
 
     # Admin

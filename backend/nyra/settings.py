@@ -256,11 +256,12 @@ REST_FRAMEWORK = {
         "store.throttling.CloudflareAwareScopedRateThrottle",
     ),
     "DEFAULT_THROTTLE_RATES": {
-        "staff_login": "5/min",
-        "order_create": "10/min",
-        "contact_create": "10/min",
-        "token_refresh": "30/min",
+    "staff_login": "5/min",
+    "order_create": "10/min",
+    "contact_create": "10/min",
+    "token_refresh": "30/min",
     },
+    "NUM_PROXIES": 3,
     "EXCEPTION_HANDLER": "store.exceptions.custom_exception_handler",
 }
 
