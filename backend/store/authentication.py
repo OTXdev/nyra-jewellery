@@ -1,23 +1,4 @@
-"""
-Cookie-based JWT authentication for the Nyra admin dashboard.
 
-Why this exists
-----------------
-SimpleJWT's default `JWTAuthentication` only looks at the `Authorization`
-header. We now issue the admin's access token as an HttpOnly cookie so it
-can never be read by JavaScript (mitigates XSS token theft). This class:
-
-1. Still accepts `Authorization: Bearer <token>` if present, so any
-   existing/non-browser client (Postman, mobile app, CI scripts, etc.)
-   keeps working unchanged.
-2. Falls back to the `nyra_access_token` HttpOnly cookie when there is no
-   Authorization header.
-3. When authentication succeeds via the cookie, it enforces Django's CSRF
-   protection on unsafe methods (POST/PUT/PATCH/DELETE). This is required
-   because browsers attach cookies automatically to cross-site requests,
-   which header-based bearer tokens are naturally immune to but
-   cookie-based auth is not.
-"""
 
 from django.conf import settings
 from rest_framework import exceptions

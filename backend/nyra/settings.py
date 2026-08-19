@@ -12,13 +12,7 @@ except ImportError:
 
 
 def env_bool(name, default=None):
-    """
-    Strictly parse an environment variable as a boolean.
 
-    Accepts only the intended true/false representations below. Returns
-    `default` when the variable is unset. Raises ValueError for any other
-    value so callers can fail fast instead of silently misinterpreting input.
-    """
     val = os.environ.get(name)
     if val is None:
         return default
@@ -157,7 +151,9 @@ AUTHENTICATION_BACKENDS = [
 AXES_FAILURE_LIMIT = 5            
 AXES_COOLOFF_TIME = 1          
 AXES_LOCKOUT_PARAMETERS = [["ip_address", "username"]]  
-AXES_RESET_ON_SUCCESS = True  
+AXES_RESET_ON_SUCCESS = True 
+AXES_CLIENT_IP_CALLABLE = "store.axes_ip.get_axes_client_ip"
+ 
 
 
 ROOT_URLCONF = "nyra.urls"
